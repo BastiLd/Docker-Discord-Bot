@@ -1,48 +1,30 @@
 {% extends "base.html" %}
 
 {% block page_body %}
-<section class="metric-grid metric-grid-three">
-    <article class="metric-card panel-surface">
-        <span class="metric-label">Bot-Zustand</span>
-        <strong class="metric-value" data-status-field="state_text">Lade Status …</strong>
-        <span class="metric-subtle">Live aus dem Prozessmanager</span>
-    </article>
-    <article class="metric-card panel-surface">
-        <span class="metric-label">Letzte Uptime</span>
-        <strong class="metric-value" data-status-field="uptime">-</strong>
-        <span class="metric-subtle">Seit dem letzten Start</span>
-    </article>
-    <article class="metric-card panel-surface">
-        <span class="metric-label">Letzter Exit-Code</span>
-        <strong class="metric-value" data-status-field="exit">-</strong>
-        <span class="metric-subtle">Wichtig für die Fehlersuche</span>
-    </article>
-</section>
-
-<section class="content-stack">
-    <article class="panel-surface content-panel">
-        <div class="panel-head between">
+<section class="activity-layout">
+    <article class="panel-surface log-card">
+        <div class="panel-header between">
             <div>
-                <p class="section-label">Live-Logs</p>
+                <p class="eyebrow">Live-Logs</p>
                 <h3>Bot- und Systemprotokolle</h3>
             </div>
-            <div class="toolbar-actions">
+            <div class="toolbar-actions compact-actions">
                 <button class="tab-button is-active" data-log-tab="bot" type="button">Bot-Logs</button>
                 <button class="tab-button" data-log-tab="system" type="button">System-Logs</button>
-                <a class="ghost-button" id="downloadLogsLink" href="/api/logs/bot/download">Log herunterladen</a>
+                <a class="ghost-button" id="downloadLogsLink" href="/api/logs/bot/download">Download</a>
             </div>
         </div>
-        <pre class="terminal-preview large-terminal" id="logOutput">Warte auf Log-Ausgabe …</pre>
+        <pre class="terminal-preview activity-terminal" id="logOutput">Warte auf Log-Ausgabe ...</pre>
     </article>
 
-    <article class="panel-surface content-panel">
-        <div class="panel-head">
+    <article class="panel-surface history-card">
+        <div class="panel-header">
             <div>
-                <p class="section-label">Prozessverlauf</p>
-                <h3>Start-, Stop- und Crash-Ereignisse</h3>
+                <p class="eyebrow">Verlauf</p>
+                <h3>Prozessereignisse</h3>
             </div>
         </div>
-        <div class="history-list history-list-wide" id="historyList"></div>
+        <div class="history-list history-list-side" id="historyList"></div>
     </article>
 </section>
 {% endblock %}

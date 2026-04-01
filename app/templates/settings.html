@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block page_body %}
+<section class="settings-grid">
+    <div class="settings-side-column">
+        <article class="panel-surface settings-info-card">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Server Details</p>
+                    <h3>Lokale Konfiguration</h3>
+                </div>
+            </div>
+            <dl class="info-list compact-info-list">
+                <div>
+                    <dt>Adresse</dt>
+                    <dd>{{ server_address }}</dd>
+                </div>
+                <div>
+                    <dt>Workspace</dt>
+                    <dd>{{ workspace_path }}</dd>
+                </div>
+                <div>
+                    <dt>UI-Schutz</dt>
+                    <dd>{% if auth_enabled %}Aktiv{% else %}Nur lokal empfohlen{% endif %}</dd>
+                </div>
+                <div>
+                    <dt>Status</dt>
+                    <dd data-status-field="state_text">Lade Status ...</dd>
+                </div>
+            </dl>
+        </article>
+
+        <article class="panel-surface settings-info-card">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Hinweise</p>
+                    <h3>Sichere Defaults</h3>
+                </div>
+            </div>
+            <ul class="note-list compact-note-list">
+                <li>Discord-Token nur in der .env speichern, nie im Quelltext.</li>
+                <li>Maskierte Werte bleiben editierbar, sind aber nicht offen sichtbar.</li>
+                <li>Nach Änderungen an der .env den Bot neu starten.</li>
+            </ul>
+        </article>
+    </div>
+
+    <article class="panel-surface settings-main-card">
+        <div class="panel-header between">
+            <div>
+                <p class="eyebrow">Umgebungsvariablen</p>
+                <h3>.env verwalten</h3>
+            </div>
+            <div class="toolbar-actions compact-actions">
+                <button class="secondary-button" id="addEnvBtn" type="button">Variable hinzufügen</button>
+                <button class="primary-button" id="saveEnvBtn" type="button">.env speichern</button>
+            </div>
+        </div>
+        <div class="env-list env-list-wide" id="envList"></div>
+    </article>
+</section>
+{% endblock %}

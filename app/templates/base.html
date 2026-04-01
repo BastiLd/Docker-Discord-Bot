@@ -2,103 +2,106 @@
 <html lang="de">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ page_title }} Â· {{ app_name }}</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="theme-color" content="#4a35cf">
+    <title>{{ page_title }} | {{ app_name }}</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
 </head>
 <body data-page="{{ active_page }}">
     <div class="layout-shell">
         <aside class="sidebar-shell">
-            <div class="brand-card panel-surface">
+            <div class="sidebar-inner">
                 <a class="brand-link" href="/dashboard">
                     <span class="brand-mark" aria-hidden="true"></span>
-                    <div>
-                        <p class="eyebrow">Self-hosted Bot Control</p>
-                        <h1>{{ app_name }}</h1>
-                    </div>
+                    <span class="brand-name">{{ app_name }}</span>
                 </a>
-                <p class="brand-copy">Discord-Bots lokal starten, pflegen und Ã¼berwachen, ohne dass sich die OberflÃ¤che nach BastellÃ¶sung anfÃ¼hlt.</p>
-            </div>
 
-            <section class="server-card panel-surface">
-                <p class="section-label">Bot-Status</p>
-                <div class="server-card-head">
-                    <div>
-                        <strong class="server-name">Discord-Bot</strong>
-                        <p class="server-address">{{ server_address }}</p>
+                <section class="server-panel">
+                    <div class="server-summary">
+                        <span class="server-avatar" aria-hidden="true"></span>
+                        <div>
+                            <strong class="server-name">Discord-Bot</strong>
+                            <p class="server-address">{{ server_address }}</p>
+                        </div>
                     </div>
-                    <span class="status-badge is-unknown" data-status-field="badge">Unbekannt</span>
-                </div>
-                <dl class="mini-stats">
-                    <div>
-                        <dt>Prozess</dt>
-                        <dd data-status-field="state_text">Lade Status â€¦</dd>
+                    <div class="quick-action-row">
+                        <button class="quick-action is-start" type="button" data-bot-action="start" aria-label="Bot starten" title="Bot starten">
+                            <span class="quick-icon quick-icon-play" aria-hidden="true"></span>
+                        </button>
+                        <button class="quick-action is-restart" type="button" data-bot-action="restart" aria-label="Bot neu starten" title="Bot neu starten">
+                            <span class="quick-icon quick-icon-restart" aria-hidden="true"></span>
+                        </button>
+                        <button class="quick-action is-stop" type="button" data-bot-action="stop" aria-label="Bot stoppen" title="Bot stoppen">
+                            <span class="quick-icon quick-icon-stop" aria-hidden="true"></span>
+                        </button>
                     </div>
-                    <div>
-                        <dt>PID</dt>
-                        <dd data-status-field="pid">-</dd>
-                    </div>
-                    <div>
-                        <dt>Uptime</dt>
-                        <dd data-status-field="uptime">-</dd>
-                    </div>
-                    <div>
-                        <dt>Exit-Code</dt>
-                        <dd data-status-field="exit">-</dd>
-                    </div>
-                </dl>
-                <div class="sidebar-actions">
-                    <button class="action-button is-start" type="button" data-bot-action="start">Starten</button>
-                    <button class="action-button is-restart" type="button" data-bot-action="restart">Neustarten</button>
-                    <button class="action-button is-stop" type="button" data-bot-action="stop">Stoppen</button>
-                </div>
-                <p class="sidebar-error" data-status-field="error"></p>
-            </section>
-
-            <nav class="nav-groups" aria-label="Navigation">
-                {% for group in navigation %}
-                <section class="nav-group">
-                    <p class="nav-group-title">{{ group["section"] }}</p>
-                    <div class="nav-list">
-                        {% for item in group["items"] %}
-                        <a class="nav-link {% if active_page == item.key %}is-active{% endif %}" href="{{ item.href }}">
-                            <span class="nav-link-dot" aria-hidden="true"></span>
-                            <span>{{ item.label }}</span>
-                        </a>
-                        {% endfor %}
-                    </div>
+                    <dl class="server-stats compact-stats">
+                        <div>
+                            <dt>Status</dt>
+                            <dd><span class="status-badge is-unknown" data-status-field="badge">Unbekannt</span></dd>
+                        </div>
+                        <div>
+                            <dt>PID</dt>
+                            <dd data-status-field="pid">-</dd>
+                        </div>
+                        <div>
+                            <dt>Uptime</dt>
+                            <dd data-status-field="uptime">-</dd>
+                        </div>
+                    </dl>
+                    <p class="server-inline-error" data-status-field="error"></p>
                 </section>
-                {% endfor %}
-            </nav>
 
-            <section class="meta-card panel-surface">
-                <p class="section-label">Workspace</p>
-                <code>{{ workspace_path }}</code>
-            </section>
+                <nav class="nav-groups" aria-label="Navigation">
+                    {% for group in navigation %}
+                    <section class="nav-group">
+                        <p class="nav-group-title">{{ group["section"] }}</p>
+                        <div class="nav-list">
+                            {% for item in group["items"] %}
+                            <a class="nav-link {% if active_page == item.key %}is-active{% endif %}" href="{{ item.href }}">
+                                <span class="nav-icon nav-icon-{{ item.icon }}" aria-hidden="true"></span>
+                                <span>{{ item.label }}</span>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </section>
+                    {% endfor %}
+                </nav>
 
-            {% if not auth_enabled %}
-            <section class="meta-card panel-surface panel-warning">
-                <p class="section-label">Sicherheit</p>
-                <p>Die OberflÃ¤che ist aktuell ohne Login erreichbar. Nutze sie nur lokal oder geschÃ¼tzt hinter Reverse Proxy, VPN oder ZugriffsbeschrÃ¤nkung.</p>
-            </section>
-            {% endif %}
+                <div class="sidebar-footer">
+                    <a class="account-link" href="/settings">
+                        <span class="account-mark" aria-hidden="true"></span>
+                        <div>
+                            <strong>Account</strong>
+                            <span>{% if auth_enabled %}UI-Schutz aktiv{% else %}Nur lokal empfohlen{% endif %}</span>
+                        </div>
+                    </a>
+                    <p class="workspace-inline" title="{{ workspace_path }}">{{ workspace_path }}</p>
+                </div>
+            </div>
         </aside>
 
         <div class="main-shell">
             <header class="page-topbar">
-                <div>
-                    <p class="eyebrow">{{ page_kicker }}</p>
-                    <h2>{{ page_heading }}</h2>
-                    <p class="page-description">{{ page_description }}</p>
-                </div>
-                <div class="topbar-meta">
-                    <span class="meta-pill">{{ page_title }}</span>
-                    <span class="meta-pill">{{ server_address }}</span>
+                <button class="search-launcher" id="quickFocusBtn" type="button" aria-label="Schnellfokus"></button>
+                <div class="topbar-links">
+                    <a href="{{ support_links.discord }}" target="_blank" rel="noreferrer">Discord</a>
+                    <a href="{{ support_links.support }}" target="_blank" rel="noreferrer">Support center</a>
                 </div>
             </header>
 
             <main class="page-shell">
-                {% block page_body %}{% endblock %}
+                <div class="page-meta-bar">
+                    <div>
+                        <p class="page-kicker">{{ page_kicker }}</p>
+                        <h1>{{ page_heading }}</h1>
+                    </div>
+                    <p class="page-description">{{ page_description }}</p>
+                </div>
+                <div class="page-canvas page-canvas-{{ active_page }}">
+                    {% block page_body %}{% endblock %}
+                </div>
             </main>
         </div>
     </div>
@@ -112,7 +115,7 @@
                     <p class="eyebrow" id="modalEyebrow">Aktion</p>
                     <h3 id="modalTitle">Dialog</h3>
                 </div>
-                <button class="icon-button" type="button" id="modalCancelBtn" aria-label="Dialog schlieÃŸen">Ã—</button>
+                <button class="icon-button" type="button" id="modalCancelBtn" aria-label="Dialog schließen">x</button>
             </div>
             <p class="modal-description" id="modalDescription"></p>
             <form class="modal-form" id="modalForm">

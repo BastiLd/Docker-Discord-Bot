@@ -1,53 +1,84 @@
 {% extends "base.html" %}
 
 {% block page_body %}
-<section class="hero-banner panel-surface compact-hero">
-    <div class="hero-copy-block">
-        <p class="section-label">Sicheres Web-Terminal</p>
-        <h3>Gezielte Befehle im Workspace, ohne freie Shell und ohne unnötiges Risiko.</h3>
-        <p>Erlaubt sind nur definierte Einzelbefehle. Verkettungen, Umleitungen und absolute Pfade bleiben gesperrt.</p>
-    </div>
+<section class="stats-row stats-row-three compact-row">
+    <article class="stat-card panel-surface">
+        <div class="stat-copy">
+            <span class="stat-label">Status</span>
+            <strong class="stat-value" data-status-field="state_text">Lade Status ...</strong>
+        </div>
+        <span class="stat-chip stat-chip-cpu" aria-hidden="true"></span>
+    </article>
+    <article class="stat-card panel-surface">
+        <div class="stat-copy">
+            <span class="stat-label">PID</span>
+            <strong class="stat-value" data-status-field="pid">-</strong>
+        </div>
+        <span class="stat-chip stat-chip-ram" aria-hidden="true"></span>
+    </article>
+    <article class="stat-card panel-surface">
+        <div class="stat-copy">
+            <span class="stat-label">Uptime</span>
+            <strong class="stat-value" data-status-field="uptime">-</strong>
+        </div>
+        <span class="stat-chip stat-chip-disk" aria-hidden="true"></span>
+    </article>
 </section>
 
-<section class="content-stack">
-    <article class="panel-surface content-panel">
-        <div class="panel-head between">
-            <div>
-                <p class="section-label">Konsole</p>
-                <h3>Befehl ausführen</h3>
-            </div>
-            <span class="meta-pill">Sicherheitsfilter aktiv</span>
+<section class="panel-surface console-card">
+    <div class="panel-header between">
+        <div>
+            <p class="eyebrow">Konsole</p>
+            <h3>Sichere Befehle im Workspace</h3>
         </div>
-        <form class="console-form" id="consoleForm">
+        <span class="meta-pill">Filter aktiv</span>
+    </div>
+    <div class="console-shell">
+        <pre class="terminal-preview terminal-preview-tall task-output" id="taskOutput">Noch kein Task ausgewählt.</pre>
+        <form class="console-command-bar" id="consoleForm">
+            <span class="command-prefix" aria-hidden="true"></span>
             <input id="consoleInput" type="text" placeholder="z. B. python --version, pip list, ls, tree, find . -maxdepth 2">
             <button class="primary-button" type="submit">Ausführen</button>
         </form>
-        <div class="hint-grid">
-            <span class="hint-pill">Erlaubt: python, pip, ls, find, cat, head, tail, grep, env, tree</span>
-            <span class="hint-pill">Gesperrt: |, &&, ;, >, <, absolute Pfade, ..</span>
+    </div>
+</section>
+
+<section class="console-footer-grid">
+    <article class="panel-surface mini-panel">
+        <div class="panel-header">
+            <div>
+                <p class="eyebrow">Erlaubt</p>
+                <h3>Befehlsprofil</h3>
+            </div>
+        </div>
+        <div class="hint-grid hint-grid-column">
+            <span class="hint-pill">python, pip, ls, find, cat, head, tail, grep, env, tree</span>
+            <span class="hint-pill">Keine Pipes, keine Umleitungen, keine absoluten Pfade, kein ..</span>
         </div>
     </article>
 
-    <section class="task-grid">
-        <article class="panel-surface content-panel task-list-panel">
-            <div class="panel-head">
-                <div>
-                    <p class="section-label">Tasks</p>
-                    <h3>Letzte Ausführungen</h3>
-                </div>
+    <article class="panel-surface mini-panel task-list-panel">
+        <div class="panel-header">
+            <div>
+                <p class="eyebrow">Tasks</p>
+                <h3>Letzte Ausführungen</h3>
             </div>
-            <div class="task-list" id="taskList"></div>
-        </article>
+        </div>
+        <div class="task-list compact-task-list" id="taskList"></div>
+    </article>
 
-        <article class="panel-surface content-panel task-output-panel">
-            <div class="panel-head">
-                <div>
-                    <p class="section-label">Ausgabe</p>
-                    <h3>Task-Protokoll</h3>
-                </div>
+    <article class="panel-surface mini-panel">
+        <div class="panel-header">
+            <div>
+                <p class="eyebrow">Hinweis</p>
+                <h3>Typische Nutzung</h3>
             </div>
-            <pre class="terminal-preview task-output" id="taskOutput">Noch kein Task ausgewählt.</pre>
-        </article>
-    </section>
+        </div>
+        <ul class="note-list compact-note-list">
+            <li>Pakete lieber über Start & Pakete installieren.</li>
+            <li>In der Konsole vor allem Diagnose und kleine Wartung ausführen.</li>
+            <li>Für Live-Bot-Logs den Bereich Aktivität öffnen.</li>
+        </ul>
+    </article>
 </section>
 {% endblock %}

@@ -26,6 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
     bindModal();
     bindGlobalBotControls();
     initializePage();
+    bindQuickFocus();
     refreshStatus({ silent: true });
     window.setInterval(() => refreshStatus({ silent: true }), 5000);
     if (page === "files") {
@@ -40,6 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
 function collectBaseElements() {
     Object.assign(els, {
         toastStack: byId("toastStack"),
+        quickFocusBtn: byId("quickFocusBtn"),
         modalShell: byId("modalShell"),
         modalForm: byId("modalForm"),
         modalEyebrow: byId("modalEyebrow"),
@@ -86,9 +88,24 @@ function initializePage() {
         bindTaskPage({ withConsoleForm: false });
     }
 
-    if (page === "environment") {
+    if (page === "settings" || page === "environment") {
         bindEnvironmentPage();
     }
+}
+
+function bindQuickFocus() {
+    els.quickFocusBtn?.addEventListener("click", () => {
+        const focusTarget = getQuickFocusTarget();
+        focusTarget?.focus();
+    });
+}
+
+function getQuickFocusTarget() {
+    if (page === "files") return byId("fileSearchInput") || byId("editorTextarea");
+    if (page === "console") return byId("consoleInput");
+    if (page === "startup") return byId("startCommandInput") || byId("packageInput");
+    if (page === "settings" || page === "environment") return document.querySelector(".env-key-input") || byId("addEnvBtn");
+    return null;
 }
 
 function byId(id) {

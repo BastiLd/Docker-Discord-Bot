@@ -29,25 +29,31 @@ NAVIGATION: list[dict[str, Any]] = [
     {
         "section": "Allgemein",
         "items": [
-            {"key": "dashboard", "label": "Dashboard", "href": "/dashboard"},
-            {"key": "console", "label": "Konsole", "href": "/console"},
-            {"key": "activity", "label": "Aktivität", "href": "/activity"},
+            {"key": "dashboard", "label": "Dashboard", "href": "/dashboard", "icon": "dashboard"},
+            {"key": "console", "label": "Konsole", "href": "/console", "icon": "console"},
+            {"key": "settings", "label": "Einstellungen", "href": "/settings", "icon": "settings"},
+            {"key": "activity", "label": "Aktivität", "href": "/activity", "icon": "activity"},
         ],
     },
     {
         "section": "Verwaltung",
         "items": [
-            {"key": "files", "label": "Dateien", "href": "/files"},
+            {"key": "files", "label": "Dateien", "href": "/files", "icon": "files"},
         ],
     },
     {
         "section": "Konfiguration",
         "items": [
-            {"key": "startup", "label": "Start & Pakete", "href": "/startup"},
-            {"key": "environment", "label": "Umgebungsvariablen", "href": "/environment"},
+            {"key": "startup", "label": "Start & Pakete", "href": "/startup", "icon": "startup"},
         ],
     },
 ]
+
+
+SUPPORT_LINKS = {
+    "discord": "https://discord.com/developers/applications",
+    "support": "https://github.com/BastiLd/Docker-Discord-Bot",
+}
 
 
 def _services(request: Request):
@@ -85,6 +91,7 @@ def _page_context(
         "workspace_path": str(state.config.workspace_dir),
         "auth_enabled": bool(state.config.ui_username and state.config.ui_password),
         "server_address": server_address,
+        "support_links": SUPPORT_LINKS,
     }
 
 
@@ -99,9 +106,9 @@ async def dashboard_page(request: Request) -> HTMLResponse:
             request,
             active_page="dashboard",
             page_title="Dashboard",
-            page_kicker="Laufzeitübersicht",
-            page_heading="Steuere deinen Discord-Bot wie ein lokales Control Panel.",
-            page_description="Klare Statusanzeigen, schnelle Aktionen und deutlich mehr Platz für die Dinge, die du wirklich brauchst.",
+            page_kicker="Server",
+            page_heading="Discord-Bot Übersicht",
+            page_description="Status, Verlauf und Schnellzugriffe in einer kompakten Ansicht.",
         ),
     )
 
@@ -116,9 +123,9 @@ async def files_page(request: Request) -> HTMLResponse:
             request,
             active_page="files",
             page_title="Dateien",
-            page_kicker="Workspace",
-            page_heading="Dateimanager und Editor für dein Bot-Projekt.",
-            page_description="Dateien hochladen, ZIP-Archive entpacken, Ordner verwalten und Quelltext direkt im Browser bearbeiten.",
+            page_kicker="Management",
+            page_heading="Dateimanager",
+            page_description="Dateien hochladen, bearbeiten, packen und direkt im Browser verwalten.",
         ),
     )
 
@@ -133,15 +140,14 @@ async def console_page(request: Request) -> HTMLResponse:
             request,
             active_page="console",
             page_title="Konsole",
-            page_kicker="Aufgaben & Befehle",
-            page_heading="Sichere Web-Konsole für gezielte Wartungsbefehle.",
-            page_description="Führe erlaubte Befehle im Workspace aus, beobachte die Ausgabe und behalte deine letzten Tasks im Blick.",
+            page_kicker="Server",
+            page_heading="Sichere Konsole",
+            page_description="Erlaubte Befehle im Workspace ausführen und Task-Ausgaben live verfolgen.",
         ),
     )
 
 
 @router.get("/startup", response_class=HTMLResponse)
-@router.get("/settings", response_class=HTMLResponse)
 async def startup_page(request: Request) -> HTMLResponse:
     state = _services(request)
     return state.templates.TemplateResponse(
@@ -151,26 +157,27 @@ async def startup_page(request: Request) -> HTMLResponse:
             request,
             active_page="startup",
             page_title="Start & Pakete",
-            page_kicker="Runtime-Konfiguration",
-            page_heading="Definiere Startbefehl, venv-Verhalten und Paketinstallation.",
-            page_description="Passe den Bot-Start an dein Projekt an und installiere Abhängigkeiten ohne zusätzliche Shell-Fummelei.",
+            page_kicker="Konfiguration",
+            page_heading="Startup",
+            page_description="Startbefehl, virtuelle Umgebung und Paketinstallation für deinen Bot.",
         ),
     )
 
 
+@router.get("/settings", response_class=HTMLResponse)
 @router.get("/environment", response_class=HTMLResponse)
-async def environment_page(request: Request) -> HTMLResponse:
+async def settings_page(request: Request) -> HTMLResponse:
     state = _services(request)
     return state.templates.TemplateResponse(
         request,
-        "environment.html",
+        "settings.html",
         _page_context(
             request,
-            active_page="environment",
-            page_title="Umgebungsvariablen",
-            page_kicker="Konfiguration",
-            page_heading="Verwalte deine .env sauber, sicher und übersichtlich.",
-            page_description="Tokens und Konfigurationswerte bleiben lokal, maskierbar und werden beim Bot-Start direkt berücksichtigt.",
+            active_page="settings",
+            page_title="Einstellungen",
+            page_kicker="Server",
+            page_heading="Einstellungen",
+            page_description="Umgebungsvariablen und lokale Self-Hosting-Konfiguration an einem Ort.",
         ),
     )
 
@@ -186,9 +193,9 @@ async def activity_page(request: Request) -> HTMLResponse:
             request,
             active_page="activity",
             page_title="Aktivität",
-            page_kicker="Logs & Verlauf",
-            page_heading="Bot-Logs, Systemereignisse und letzte Prozesswechsel an einem Ort.",
-            page_description="Behalte Start-, Stop- und Crash-Ereignisse im Blick und lade Logdateien direkt aus der Oberfläche herunter.",
+            page_kicker="Server",
+            page_heading="Aktivität",
+            page_description="Bot-Logs, Systemereignisse und letzte Prozesswechsel in einem separaten Bereich.",
         ),
     )
 
@@ -314,8 +321,6 @@ async def delete_entries(request: Request, payload: DeleteEntriesRequest) -> JSO
     except Exception as exc:  # noqa: BLE001
         _raise_bad_request(exc)
     return JSONResponse({"ok": True})
-
-
 @router.post("/api/files/upload")
 async def upload_files(
     request: Request,
@@ -419,8 +424,6 @@ async def get_task(request: Request, task_id: str) -> JSONResponse:
     except Exception as exc:  # noqa: BLE001
         _raise_bad_request(exc)
     return JSONResponse(payload)
-
-
 @router.post("/api/tasks/install-deps")
 async def install_dependencies(request: Request) -> JSONResponse:
     try:

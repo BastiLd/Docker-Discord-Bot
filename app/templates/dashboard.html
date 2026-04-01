@@ -1,101 +1,116 @@
 {% extends "base.html" %}
 
 {% block page_body %}
-<section class="hero-banner panel-surface hero-dashboard">
-    <div class="hero-copy-block">
-        <p class="section-label">Control Center</p>
-        <h3>Alle Kernaktionen direkt im Blick, ohne dass die Seite überfrachtet wirkt.</h3>
-        <p>Der Bot-Status, die wichtigsten Laufzeitdaten und die letzten Ereignisse sitzen auf einer sauberen, eigenen Seite mit deutlich mehr Raum als zuvor.</p>
-        <div class="hero-action-row">
-            <button class="primary-button" type="button" data-bot-action="start">Bot starten</button>
-            <button class="secondary-button" type="button" data-bot-action="restart">Bot neu starten</button>
-            <a class="ghost-button" href="/activity">Logs öffnen</a>
+<section class="banner-card panel-surface">
+    <div class="banner-art" aria-hidden="true">
+        <div class="python-top"></div>
+        <div class="python-bottom"></div>
+        <div class="python-cut python-cut-top"></div>
+        <div class="python-cut python-cut-bottom"></div>
+    </div>
+</section>
+
+<section class="stats-row stats-row-three">
+    <article class="stat-card panel-surface">
+        <div class="stat-copy">
+            <span class="stat-label">Status</span>
+            <strong class="stat-value" data-status-field="state_text">Lade Status ...</strong>
         </div>
-    </div>
-    <div class="hero-art" aria-hidden="true">
-        <div class="hero-orbit orbit-one"></div>
-        <div class="hero-orbit orbit-two"></div>
-        <div class="hero-block glow-a"></div>
-        <div class="hero-block glow-b"></div>
-        <div class="hero-block glow-c"></div>
-    </div>
-</section>
-
-<section class="metric-grid metric-grid-four">
-    <article class="metric-card panel-surface">
-        <span class="metric-label">Aktueller Zustand</span>
-        <strong class="metric-value" data-status-field="state_text">Lade Status …</strong>
-        <span class="metric-subtle">Sofort aus dem Prozessmanager gelesen</span>
+        <span class="stat-chip stat-chip-cpu" aria-hidden="true"></span>
     </article>
-    <article class="metric-card panel-surface">
-        <span class="metric-label">PID</span>
-        <strong class="metric-value" data-status-field="pid">-</strong>
-        <span class="metric-subtle">Laufender Bot-Prozess</span>
+    <article class="stat-card panel-surface">
+        <div class="stat-copy">
+            <span class="stat-label">Uptime</span>
+            <strong class="stat-value" data-status-field="uptime">-</strong>
+        </div>
+        <span class="stat-chip stat-chip-ram" aria-hidden="true"></span>
     </article>
-    <article class="metric-card panel-surface">
-        <span class="metric-label">Uptime</span>
-        <strong class="metric-value" data-status-field="uptime">-</strong>
-        <span class="metric-subtle">Seit dem letzten Start</span>
-    </article>
-    <article class="metric-card panel-surface">
-        <span class="metric-label">Letzter Exit-Code</span>
-        <strong class="metric-value" data-status-field="exit">-</strong>
-        <span class="metric-subtle">Wichtig für Fehlersuche und Neustarts</span>
+    <article class="stat-card panel-surface">
+        <div class="stat-copy">
+            <span class="stat-label">Exit-Code</span>
+            <strong class="stat-value" data-status-field="exit">-</strong>
+        </div>
+        <span class="stat-chip stat-chip-disk" aria-hidden="true"></span>
     </article>
 </section>
 
-<section class="content-stack">
-    <article class="panel-surface content-panel">
-        <div class="panel-head between">
+<section class="dashboard-grid">
+    <article class="panel-surface info-card">
+        <div class="panel-header">
             <div>
-                <p class="section-label">Laufzeitdetails</p>
-                <h3>Startbefehl und Konfiguration</h3>
+                <p class="eyebrow">Server Info</p>
+                <h3>Laufzeit</h3>
             </div>
-            <a class="ghost-button" href="/startup">Start & Pakete öffnen</a>
         </div>
-        <dl class="info-grid info-grid-two">
+        <dl class="info-list">
+            <div>
+                <dt>Status</dt>
+                <dd><span class="status-badge is-unknown" data-status-field="badge">Unbekannt</span></dd>
+            </div>
+            <div>
+                <dt>PID</dt>
+                <dd data-status-field="pid">-</dd>
+            </div>
             <div>
                 <dt>Startbefehl</dt>
                 <dd data-status-field="command">python bot.py</dd>
             </div>
             <div>
-                <dt>Arbeitsverzeichnis</dt>
-                <dd>{{ workspace_path }}</dd>
-            </div>
-            <div>
-                <dt>Serveradresse</dt>
+                <dt>Adresse</dt>
                 <dd>{{ server_address }}</dd>
             </div>
             <div>
-                <dt>Web-UI-Schutz</dt>
-                <dd>{% if auth_enabled %}Aktiviert{% else %}Nur lokal empfohlen{% endif %}</dd>
+                <dt>Workspace</dt>
+                <dd>{{ workspace_path }}</dd>
             </div>
         </dl>
-        <p class="panel-error" data-status-field="error"></p>
     </article>
 
-    <div class="balanced-grid">
-        <article class="panel-surface content-panel">
-            <div class="panel-head between">
-                <div>
-                    <p class="section-label">Live-Vorschau</p>
-                    <h3>Aktuelle Bot-Logs</h3>
-                </div>
-                <a class="ghost-button" href="/activity">Zur Aktivität</a>
+    <article class="panel-surface info-card">
+        <div class="panel-header between">
+            <div>
+                <p class="eyebrow">Aktivität</p>
+                <h3>Letzte Ereignisse</h3>
             </div>
-            <pre class="terminal-preview" id="dashboardLogPreview">Warte auf Log-Ausgabe …</pre>
-        </article>
+            <a class="ghost-button" href="/activity">Alle Logs</a>
+        </div>
+        <div class="history-list dashboard-history" id="historyList"></div>
+    </article>
+</section>
 
-        <article class="panel-surface content-panel">
-            <div class="panel-head between">
-                <div>
-                    <p class="section-label">Verlauf</p>
-                    <h3>Letzte Zustandswechsel</h3>
-                </div>
-                <a class="ghost-button" href="/activity">Alle Ereignisse</a>
+<section class="dashboard-grid dashboard-grid-bottom">
+    <article class="panel-surface info-card">
+        <div class="panel-header between">
+            <div>
+                <p class="eyebrow">Bot-Logs</p>
+                <h3>Live-Vorschau</h3>
             </div>
-            <div class="history-list" id="historyList"></div>
-        </article>
-    </div>
+            <a class="ghost-button" href="/console">Zur Konsole</a>
+        </div>
+        <pre class="terminal-preview terminal-preview-compact" id="dashboardLogPreview">Warte auf Bot-Logs ...</pre>
+    </article>
+
+    <article class="panel-surface info-card action-card">
+        <div class="panel-header">
+            <div>
+                <p class="eyebrow">Schnellzugriff</p>
+                <h3>Nächste Schritte</h3>
+            </div>
+        </div>
+        <div class="shortcut-grid">
+            <a class="shortcut-link" href="/files">
+                <strong>Dateien</strong>
+                <span>Bot-Projekt hochladen und direkt bearbeiten</span>
+            </a>
+            <a class="shortcut-link" href="/settings">
+                <strong>Einstellungen</strong>
+                <span>.env pflegen und sensible Werte maskiert halten</span>
+            </a>
+            <a class="shortcut-link" href="/startup">
+                <strong>Start & Pakete</strong>
+                <span>requirements installieren und Startbefehl setzen</span>
+            </a>
+        </div>
+    </article>
 </section>
 {% endblock %}
