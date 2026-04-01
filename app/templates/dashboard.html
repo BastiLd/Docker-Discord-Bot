@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block page_body %}
+<section class="hero-banner panel-surface hero-dashboard">
+    <div class="hero-copy-block">
+        <p class="section-label">Control Center</p>
+        <h3>Alle Kernaktionen direkt im Blick, ohne dass die Seite überfrachtet wirkt.</h3>
+        <p>Der Bot-Status, die wichtigsten Laufzeitdaten und die letzten Ereignisse sitzen auf einer sauberen, eigenen Seite mit deutlich mehr Raum als zuvor.</p>
+        <div class="hero-action-row">
+            <button class="primary-button" type="button" data-bot-action="start">Bot starten</button>
+            <button class="secondary-button" type="button" data-bot-action="restart">Bot neu starten</button>
+            <a class="ghost-button" href="/activity">Logs öffnen</a>
+        </div>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+        <div class="hero-orbit orbit-one"></div>
+        <div class="hero-orbit orbit-two"></div>
+        <div class="hero-block glow-a"></div>
+        <div class="hero-block glow-b"></div>
+        <div class="hero-block glow-c"></div>
+    </div>
+</section>
+
+<section class="metric-grid metric-grid-four">
+    <article class="metric-card panel-surface">
+        <span class="metric-label">Aktueller Zustand</span>
+        <strong class="metric-value" data-status-field="state_text">Lade Status …</strong>
+        <span class="metric-subtle">Sofort aus dem Prozessmanager gelesen</span>
+    </article>
+    <article class="metric-card panel-surface">
+        <span class="metric-label">PID</span>
+        <strong class="metric-value" data-status-field="pid">-</strong>
+        <span class="metric-subtle">Laufender Bot-Prozess</span>
+    </article>
+    <article class="metric-card panel-surface">
+        <span class="metric-label">Uptime</span>
+        <strong class="metric-value" data-status-field="uptime">-</strong>
+        <span class="metric-subtle">Seit dem letzten Start</span>
+    </article>
+    <article class="metric-card panel-surface">
+        <span class="metric-label">Letzter Exit-Code</span>
+        <strong class="metric-value" data-status-field="exit">-</strong>
+        <span class="metric-subtle">Wichtig für Fehlersuche und Neustarts</span>
+    </article>
+</section>
+
+<section class="content-stack">
+    <article class="panel-surface content-panel">
+        <div class="panel-head between">
+            <div>
+                <p class="section-label">Laufzeitdetails</p>
+                <h3>Startbefehl und Konfiguration</h3>
+            </div>
+            <a class="ghost-button" href="/startup">Start & Pakete öffnen</a>
+        </div>
+        <dl class="info-grid info-grid-two">
+            <div>
+                <dt>Startbefehl</dt>
+                <dd data-status-field="command">python bot.py</dd>
+            </div>
+            <div>
+                <dt>Arbeitsverzeichnis</dt>
+                <dd>{{ workspace_path }}</dd>
+            </div>
+            <div>
+                <dt>Serveradresse</dt>
+                <dd>{{ server_address }}</dd>
+            </div>
+            <div>
+                <dt>Web-UI-Schutz</dt>
+                <dd>{% if auth_enabled %}Aktiviert{% else %}Nur lokal empfohlen{% endif %}</dd>
+            </div>
+        </dl>
+        <p class="panel-error" data-status-field="error"></p>
+    </article>
+
+    <div class="balanced-grid">
+        <article class="panel-surface content-panel">
+            <div class="panel-head between">
+                <div>
+                    <p class="section-label">Live-Vorschau</p>
+                    <h3>Aktuelle Bot-Logs</h3>
+                </div>
+                <a class="ghost-button" href="/activity">Zur Aktivität</a>
+            </div>
+            <pre class="terminal-preview" id="dashboardLogPreview">Warte auf Log-Ausgabe …</pre>
+        </article>
+
+        <article class="panel-surface content-panel">
+            <div class="panel-head between">
+                <div>
+                    <p class="section-label">Verlauf</p>
+                    <h3>Letzte Zustandswechsel</h3>
+                </div>
+                <a class="ghost-button" href="/activity">Alle Ereignisse</a>
+            </div>
+            <div class="history-list" id="historyList"></div>
+        </article>
+    </div>
+</section>
+{% endblock %}

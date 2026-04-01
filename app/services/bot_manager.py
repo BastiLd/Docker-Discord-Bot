@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import asyncio
 import os
@@ -58,7 +58,7 @@ class BotManager:
     async def start(self) -> dict:
         async with self._lock:
             if self.process and self.process.returncode is None:
-                raise ValueError("Bot laeuft bereits.")
+                raise ValueError("Bot läuft bereits.")
 
             settings = self.settings_service.get()
             command = self._build_command(settings)
@@ -80,16 +80,16 @@ class BotManager:
                 self.state = "crashed"
                 self.last_error = str(exc)
                 self.last_exit_code = -1
-                await self.log_service.write("system", f"Bot start failed: {exc}")
+                await self.log_service.write("system", f"Bot-Start fehlgeschlagen: {exc}")
                 self._record_event("crashed", str(exc), self.last_exit_code)
                 return await self.status()
 
             self.state = "running"
             self.started_at = utc_now()
             self.last_exit_code = None
-            self._record_event("running", f"Started with: {' '.join(command)}", None)
-            await self.log_service.write("system", f"Bot started with PID {self.process.pid}")
-            await self.log_service.write("bot", f"Process launched: {' '.join(command)}")
+            self._record_event("running", f"Gestartet mit: {' '.join(command)}", None)
+            await self.log_service.write("system", f"Bot gestartet mit PID {self.process.pid}")
+            await self.log_service.write("bot", f"Prozess gestartet: {' '.join(command)}")
 
             self._output_task = asyncio.create_task(self._stream_output())
             self._wait_task = asyncio.create_task(self._watch_process())
@@ -102,12 +102,12 @@ class BotManager:
                 return await self.status()
 
             self._stop_requested = True
-            await self.log_service.write("system", "Stopping bot process.")
+            await self.log_service.write("system", "Bot-Prozess wird beendet.")
             self.process.terminate()
             try:
                 await asyncio.wait_for(self.process.wait(), timeout=10)
             except asyncio.TimeoutError:
-                await self.log_service.write("system", "Bot did not stop gracefully, sending kill.")
+                await self.log_service.write("system", "Bot wurde nicht sauber beendet, Prozess wird hart gestoppt.")
                 self.process.kill()
                 await self.process.wait()
 
@@ -126,10 +126,10 @@ class BotManager:
         try:
             parts = shlex.split(settings.start_command, posix=not sys.platform.startswith("win"))
         except ValueError as exc:
-            raise ValueError(f"Start-Command ist ungueltig: {exc}") from exc
+            raise ValueError(f"Startbefehl ist ungültig: {exc}") from exc
 
         if not parts:
-            raise ValueError("Start-Command ist leer.")
+            raise ValueError("Startbefehl ist leer.")
 
         executable_name = Path(parts[0]).name.lower()
         if executable_name in {"python", "python3", "py"}:
@@ -175,17 +175,17 @@ class BotManager:
         if self._stop_requested:
             self.state = "stopped"
             self.last_error = None
-            await self.log_service.write("system", f"Bot stopped (exit={exit_code}).")
-            self._record_event("stopped", "Stopped by user.", exit_code)
+            await self.log_service.write("system", f"Bot gestoppt (exit={exit_code}).")
+            self._record_event("stopped", "Vom Benutzer gestoppt.", exit_code)
         elif exit_code == 0:
             self.state = "stopped"
             self.last_error = None
-            await self.log_service.write("system", "Bot exited cleanly.")
-            self._record_event("stopped", "Process exited cleanly.", exit_code)
+            await self.log_service.write("system", "Bot wurde sauber beendet.")
+            self._record_event("stopped", "Prozess wurde sauber beendet.", exit_code)
         else:
             self.state = "crashed"
-            self.last_error = f"Process exited with code {exit_code}"
-            await self.log_service.write("system", f"Bot crashed (exit={exit_code}).")
+            self.last_error = f"Prozess wurde mit Exit-Code {exit_code} beendet"
+            await self.log_service.write("system", f"Bot ist abgestürzt (exit={exit_code}).")
             self._record_event("crashed", self.last_error, exit_code)
             should_restart = self.settings_service.get().auto_restart
 
@@ -194,7 +194,7 @@ class BotManager:
         self._stop_requested = False
 
         if should_restart:
-            await self.log_service.write("system", f"Auto-restart in {restart_delay}s.")
+            await self.log_service.write("system", f"Automatischer Neustart in {restart_delay}s.")
             await asyncio.sleep(restart_delay)
             await self.start()
 

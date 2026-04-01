@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block page_body %}
+<section class="metric-grid metric-grid-three">
+    <article class="metric-card panel-surface">
+        <span class="metric-label">Bot-Zustand</span>
+        <strong class="metric-value" data-status-field="state_text">Lade Status …</strong>
+        <span class="metric-subtle">Direkt aus dem Prozessmanager</span>
+    </article>
+    <article class="metric-card panel-surface">
+        <span class="metric-label">Aktueller Befehl</span>
+        <strong class="metric-value metric-value-small" data-status-field="command">python bot.py</strong>
+        <span class="metric-subtle">Wird beim Start verwendet</span>
+    </article>
+    <article class="metric-card panel-surface">
+        <span class="metric-label">Letzter Fehler</span>
+        <strong class="metric-value metric-value-small" data-status-field="error_inline">Kein Fehler</strong>
+        <span class="metric-subtle">Hilfreich für Crash-Diagnose</span>
+    </article>
+</section>
+
+<section class="content-stack">
+    <article class="panel-surface content-panel">
+        <div class="panel-head between">
+            <div>
+                <p class="section-label">Start-Konfiguration</p>
+                <h3>Startbefehl und Laufzeitverhalten</h3>
+            </div>
+            <button class="primary-button" id="saveSettingsBtn" type="button">Einstellungen speichern</button>
+        </div>
+        <div class="form-grid single-column">
+            <label class="field-block">
+                <span>Startbefehl</span>
+                <input id="startCommandInput" type="text" placeholder="python bot.py">
+            </label>
+            <div class="toggle-row">
+                <label class="toggle-card">
+                    <input id="autoRestartInput" type="checkbox">
+                    <div>
+                        <strong>Automatischer Neustart</strong>
+                        <span>Startet den Bot nach einem Absturz automatisch erneut.</span>
+                    </div>
+                </label>
+                <label class="toggle-card">
+                    <input id="useVenvInput" type="checkbox">
+                    <div>
+                        <strong>Persistente virtuelle Umgebung</strong>
+                        <span>Pakete werden in der gemounteten venv gehalten und bleiben nach Neustarts erhalten.</span>
+                    </div>
+                </label>
+            </div>
+            <label class="field-block field-medium">
+                <span>Neustart-Verzögerung in Sekunden</span>
+                <input id="restartDelayInput" type="number" min="1" max="300">
+            </label>
+        </div>
+    </article>
+
+    <article class="panel-surface content-panel">
+        <div class="panel-head between">
+            <div>
+                <p class="section-label">Pakete</p>
+                <h3>requirements.txt und einzelne Pakete installieren</h3>
+            </div>
+            <button class="secondary-button" id="installDepsBtn" type="button">requirements.txt installieren</button>
+        </div>
+        <div class="install-row">
+            <label class="field-block grow">
+                <span>Einzelnes Paket</span>
+                <input id="packageInput" type="text" placeholder="z. B. py-cord==2.6.1">
+            </label>
+            <button class="primary-button" id="installPackageBtn" type="button">Paket installieren</button>
+        </div>
+        <p class="panel-footnote">Die Installation läuft als eigener Task und bleibt im Aufgabenprotokoll nachvollziehbar.</p>
+    </article>
+
+    <section class="task-grid">
+        <article class="panel-surface content-panel task-list-panel">
+            <div class="panel-head">
+                <div>
+                    <p class="section-label">Aufgaben</p>
+                    <h3>Letzte Installationen und Befehle</h3>
+                </div>
+            </div>
+            <div class="task-list" id="taskList"></div>
+        </article>
+
+        <article class="panel-surface content-panel task-output-panel">
+            <div class="panel-head">
+                <div>
+                    <p class="section-label">Ausgabe</p>
+                    <h3>Task-Protokoll</h3>
+                </div>
+            </div>
+            <pre class="terminal-preview task-output" id="taskOutput">Noch kein Task ausgewählt.</pre>
+        </article>
+    </section>
+</section>
+{% endblock %}

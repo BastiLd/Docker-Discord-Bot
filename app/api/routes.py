@@ -1,6 +1,7 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
@@ -24,6 +25,31 @@ from app.core.schemas import (
 router = APIRouter()
 
 
+NAVIGATION: list[dict[str, Any]] = [
+    {
+        "section": "Allgemein",
+        "items": [
+            {"key": "dashboard", "label": "Dashboard", "href": "/dashboard"},
+            {"key": "console", "label": "Konsole", "href": "/console"},
+            {"key": "activity", "label": "Aktivität", "href": "/activity"},
+        ],
+    },
+    {
+        "section": "Verwaltung",
+        "items": [
+            {"key": "files", "label": "Dateien", "href": "/files"},
+        ],
+    },
+    {
+        "section": "Konfiguration",
+        "items": [
+            {"key": "startup", "label": "Start & Pakete", "href": "/startup"},
+            {"key": "environment", "label": "Umgebungsvariablen", "href": "/environment"},
+        ],
+    },
+]
+
+
 def _services(request: Request):
     return request.app.state
 
@@ -32,22 +58,138 @@ def _raise_bad_request(exc: Exception) -> None:
     raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@router.get("/", response_class=HTMLResponse)
-async def index(request: Request) -> HTMLResponse:
+def _page_context(
+    request: Request,
+    *,
+    active_page: str,
+    page_title: str,
+    page_kicker: str,
+    page_heading: str,
+    page_description: str,
+) -> dict[str, Any]:
     state = _services(request)
     settings = state.settings_service.get()
     env_entries = state.env_service.list_entries()
+    server_address = request.headers.get("host") or f"localhost:{state.config.port}"
+    return {
+        "request": request,
+        "app_name": state.config.app_name,
+        "page_title": page_title,
+        "page_kicker": page_kicker,
+        "page_heading": page_heading,
+        "page_description": page_description,
+        "active_page": active_page,
+        "navigation": NAVIGATION,
+        "settings": settings.model_dump(mode="json"),
+        "env_entries": [entry.model_dump(mode="json") for entry in env_entries],
+        "workspace_path": str(state.config.workspace_dir),
+        "auth_enabled": bool(state.config.ui_username and state.config.ui_password),
+        "server_address": server_address,
+    }
+
+
+@router.get("/", response_class=HTMLResponse)
+@router.get("/dashboard", response_class=HTMLResponse)
+async def dashboard_page(request: Request) -> HTMLResponse:
+    state = _services(request)
     return state.templates.TemplateResponse(
         request,
-        "index.html",
-        {
-            "request": request,
-            "app_name": state.config.app_name,
-            "settings": settings.model_dump(mode="json"),
-            "env_entries": [entry.model_dump(mode="json") for entry in env_entries],
-            "workspace_path": str(state.config.workspace_dir),
-            "auth_enabled": bool(state.config.ui_username and state.config.ui_password),
-        },
+        "dashboard.html",
+        _page_context(
+            request,
+            active_page="dashboard",
+            page_title="Dashboard",
+            page_kicker="Laufzeitübersicht",
+            page_heading="Steuere deinen Discord-Bot wie ein lokales Control Panel.",
+            page_description="Klare Statusanzeigen, schnelle Aktionen und deutlich mehr Platz für die Dinge, die du wirklich brauchst.",
+        ),
+    )
+
+
+@router.get("/files", response_class=HTMLResponse)
+async def files_page(request: Request) -> HTMLResponse:
+    state = _services(request)
+    return state.templates.TemplateResponse(
+        request,
+        "files.html",
+        _page_context(
+            request,
+            active_page="files",
+            page_title="Dateien",
+            page_kicker="Workspace",
+            page_heading="Dateimanager und Editor für dein Bot-Projekt.",
+            page_description="Dateien hochladen, ZIP-Archive entpacken, Ordner verwalten und Quelltext direkt im Browser bearbeiten.",
+        ),
+    )
+
+
+@router.get("/console", response_class=HTMLResponse)
+async def console_page(request: Request) -> HTMLResponse:
+    state = _services(request)
+    return state.templates.TemplateResponse(
+        request,
+        "console.html",
+        _page_context(
+            request,
+            active_page="console",
+            page_title="Konsole",
+            page_kicker="Aufgaben & Befehle",
+            page_heading="Sichere Web-Konsole für gezielte Wartungsbefehle.",
+            page_description="Führe erlaubte Befehle im Workspace aus, beobachte die Ausgabe und behalte deine letzten Tasks im Blick.",
+        ),
+    )
+
+
+@router.get("/startup", response_class=HTMLResponse)
+@router.get("/settings", response_class=HTMLResponse)
+async def startup_page(request: Request) -> HTMLResponse:
+    state = _services(request)
+    return state.templates.TemplateResponse(
+        request,
+        "startup.html",
+        _page_context(
+            request,
+            active_page="startup",
+            page_title="Start & Pakete",
+            page_kicker="Runtime-Konfiguration",
+            page_heading="Definiere Startbefehl, venv-Verhalten und Paketinstallation.",
+            page_description="Passe den Bot-Start an dein Projekt an und installiere Abhängigkeiten ohne zusätzliche Shell-Fummelei.",
+        ),
+    )
+
+
+@router.get("/environment", response_class=HTMLResponse)
+async def environment_page(request: Request) -> HTMLResponse:
+    state = _services(request)
+    return state.templates.TemplateResponse(
+        request,
+        "environment.html",
+        _page_context(
+            request,
+            active_page="environment",
+            page_title="Umgebungsvariablen",
+            page_kicker="Konfiguration",
+            page_heading="Verwalte deine .env sauber, sicher und übersichtlich.",
+            page_description="Tokens und Konfigurationswerte bleiben lokal, maskierbar und werden beim Bot-Start direkt berücksichtigt.",
+        ),
+    )
+
+
+@router.get("/activity", response_class=HTMLResponse)
+@router.get("/logs", response_class=HTMLResponse)
+async def activity_page(request: Request) -> HTMLResponse:
+    state = _services(request)
+    return state.templates.TemplateResponse(
+        request,
+        "activity.html",
+        _page_context(
+            request,
+            active_page="activity",
+            page_title="Aktivität",
+            page_kicker="Logs & Verlauf",
+            page_heading="Bot-Logs, Systemereignisse und letzte Prozesswechsel an einem Ort.",
+            page_description="Behalte Start-, Stop- und Crash-Ereignisse im Blick und lade Logdateien direkt aus der Oberfläche herunter.",
+        ),
     )
 
 
@@ -253,7 +395,7 @@ async def get_settings(request: Request) -> JSONResponse:
 @router.put("/api/settings")
 async def save_settings(request: Request, payload: BotSettingsModel) -> JSONResponse:
     settings = _services(request).settings_service.update(payload)
-    await _services(request).log_service.write("system", "Bot settings updated.")
+    await _services(request).log_service.write("system", "Bot-Einstellungen wurden gespeichert.")
     return JSONResponse(settings.model_dump(mode="json"))
 
 

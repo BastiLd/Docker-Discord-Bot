@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import shutil
 import tempfile
@@ -75,7 +75,7 @@ class FileService:
         if not self.is_text_file(path):
             raise ValueError("Datei ist nicht als Text bearbeitbar.")
         if path.stat().st_size > max_size_bytes:
-            raise ValueError("Datei ist fuer den Web-Editor zu gross.")
+            raise ValueError("Datei ist für den Web-Editor zu groß.")
         return {
             "path": self.relative(path),
             "name": path.name,
@@ -175,7 +175,7 @@ class FileService:
                     if written > self.max_upload_bytes:
                         handle.close()
                         target.unlink(missing_ok=True)
-                        raise ValueError(f"Upload-Limit von {self.max_upload_bytes // (1024 * 1024)} MB ueberschritten.")
+                        raise ValueError(f"Upload-Limit von {self.max_upload_bytes // (1024 * 1024)} MB überschritten.")
                     handle.write(chunk)
             saved_paths.append(self.relative(target))
 
@@ -187,7 +187,7 @@ class FileService:
     def extract_archive(self, relative_path: str, destination: str = "") -> None:
         archive_path = self.resolve(relative_path)
         if archive_path.suffix.lower() != ".zip":
-            raise ValueError("Nur ZIP-Dateien koennen entpackt werden.")
+            raise ValueError("Nur ZIP-Dateien können entpackt werden.")
         if not archive_path.is_file():
             raise ValueError("Archiv nicht gefunden.")
 
@@ -197,10 +197,10 @@ class FileService:
             for member in archive.infolist():
                 member_name = Path(member.filename)
                 if member_name.is_absolute() or ".." in member_name.parts:
-                    raise ValueError("ZIP enthaelt unsichere Pfade.")
+                    raise ValueError("ZIP enthält unsichere Pfade.")
                 target_path = (target_dir / member_name).resolve()
                 if target_path != self.workspace_dir and self.workspace_dir not in target_path.parents:
-                    raise ValueError("ZIP enthaelt Pfade ausserhalb des Workspace.")
+                    raise ValueError("ZIP enthält Pfade außerhalb des Workspace.")
             archive.extractall(target_dir)
 
     def create_download_archive(self, relative_paths: list[str], label: str) -> tuple[Path, str]:
@@ -226,7 +226,7 @@ class FileService:
         normalized = (relative_path or "").replace("\\", "/").strip("/")
         candidate = (self.workspace_dir / normalized).resolve()
         if candidate != self.workspace_dir and self.workspace_dir not in candidate.parents:
-            raise ValueError("Pfad ausserhalb des Workspace ist nicht erlaubt.")
+            raise ValueError("Pfad außerhalb des Workspace ist nicht erlaubt.")
         return candidate
 
     def relative(self, path: Path) -> str:
@@ -254,6 +254,6 @@ class FileService:
     def _validate_name(name: str) -> None:
         cleaned = name.strip()
         if cleaned in {"", ".", ".."}:
-            raise ValueError("Ungueltiger Name.")
+            raise ValueError("Ungültiger Name.")
         if "/" in cleaned or "\\" in cleaned:
             raise ValueError("Name darf keine Pfadtrenner enthalten.")

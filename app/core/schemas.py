@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import re
 from typing import Literal
@@ -54,7 +54,7 @@ class EnvEntryModel(BaseModel):
     @classmethod
     def validate_key(cls, value: str) -> str:
         if not ENV_KEY_PATTERN.match(value):
-            raise ValueError("Ungueltiger Variablenname.")
+            raise ValueError("Ungültiger Variablenname.")
         return value
 
 

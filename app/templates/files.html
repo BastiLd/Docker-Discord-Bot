@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block page_body %}
+<section class="toolbar-panel panel-surface">
+    <div class="toolbar-row toolbar-row-wide">
+        <div class="breadcrumbs" id="breadcrumbs"></div>
+        <div class="toolbar-actions">
+            <button class="secondary-button" id="navigateUpBtn" type="button">Eine Ebene hoch</button>
+            <button class="secondary-button" id="refreshFilesBtn" type="button">Neu laden</button>
+            <button class="secondary-button" id="newFileBtn" type="button">Neue Datei</button>
+            <button class="secondary-button" id="newFolderBtn" type="button">Neuer Ordner</button>
+            <button class="ghost-button" id="uploadFilesBtn" type="button">Dateien hochladen</button>
+            <button class="primary-button" id="uploadArchiveBtn" type="button">ZIP hochladen</button>
+        </div>
+    </div>
+    <div class="toolbar-row toolbar-row-wide">
+        <label class="search-field search-field-wide">
+            <span class="visually-hidden">Dateien durchsuchen</span>
+            <input id="fileSearchInput" type="search" placeholder="Dateien und Ordner im aktuellen Pfad filtern">
+        </label>
+        <div class="toolbar-actions">
+            <button class="danger-button" id="bulkDeleteBtn" type="button" disabled>Auswahl löschen</button>
+            <button class="secondary-button" id="bulkDownloadBtn" type="button" disabled>Auswahl als ZIP</button>
+            <button class="secondary-button" id="bulkMoveBtn" type="button" disabled>Verschieben</button>
+            <button class="secondary-button" id="bulkCopyBtn" type="button" disabled>Kopieren</button>
+        </div>
+    </div>
+</section>
+
+<section class="content-stack">
+    <article class="panel-surface content-panel">
+        <div class="panel-head between">
+            <div>
+                <p class="section-label">Dateimanager</p>
+                <h3>Workspace-Dateien, Uploads und ZIP-Operationen</h3>
+            </div>
+            <span class="meta-pill">Mehrfachauswahl aktiv</span>
+        </div>
+
+        <div class="dropzone" id="dropzone">
+            <strong>Dateien oder ZIP-Archive hier hineinziehen</strong>
+            <span>Mehrfach-Upload, ZIP-Import, Entpacken im Workspace und anschließende Bearbeitung direkt im Browser.</span>
+        </div>
+
+        <div class="table-shell">
+            <table class="file-table">
+                <thead>
+                    <tr>
+                        <th><input id="selectAllCheckbox" type="checkbox" aria-label="Alle Einträge auswählen"></th>
+                        <th>Name</th>
+                        <th>Typ</th>
+                        <th>Größe</th>
+                        <th>Geändert</th>
+                        <th>Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody id="fileTableBody"></tbody>
+            </table>
+        </div>
+    </article>
+
+    <article class="panel-surface content-panel editor-panel">
+        <div class="panel-head between">
+            <div>
+                <p class="section-label">Editor</p>
+                <h3 id="editorTitle">Keine Datei geöffnet</h3>
+            </div>
+            <div class="toolbar-actions">
+                <span class="meta-pill" id="editorLanguage">Text</span>
+                <span class="meta-pill" id="editorDirtyBadge" data-dirty="false">Gespeichert</span>
+                <button class="secondary-button" id="reloadFileBtn" type="button" disabled>Neu laden</button>
+                <button class="primary-button" id="saveFileBtn" type="button" disabled>Speichern</button>
+            </div>
+        </div>
+        <textarea id="editorTextarea" class="editor-textarea" spellcheck="false" placeholder="Datei aus der Liste wählen, um sie hier zu bearbeiten."></textarea>
+        <p class="panel-footnote" id="editorMeta">Noch keine Datei geladen.</p>
+    </article>
+</section>
+
+<input id="uploadFilesInput" type="file" multiple hidden>
+<input id="uploadArchiveInput" type="file" accept=".zip" multiple hidden>
+{% endblock %}

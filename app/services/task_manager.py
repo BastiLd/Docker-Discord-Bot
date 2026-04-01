@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import asyncio
 import os
@@ -101,7 +101,7 @@ class TaskManager:
             str(self.config.venv_dir),
             "install-deps",
         ]
-        return await self._start_task("dependencies", "Install dependencies", command, self.config.workspace_dir)
+        return await self._start_task("dependencies", "Abhängigkeiten installieren", command, self.config.workspace_dir)
 
     async def start_install_package(self, package_name: str) -> dict:
         command = [
@@ -114,7 +114,7 @@ class TaskManager:
             "install-package",
             package_name,
         ]
-        return await self._start_task("package", f"Install package: {package_name}", command, self.config.workspace_dir)
+        return await self._start_task("package", f"Paket installieren: {package_name}", command, self.config.workspace_dir)
 
     async def start_console_command(self, command_text: str) -> dict:
         command = self._validate_console_command(command_text)
@@ -148,7 +148,7 @@ class TaskManager:
         async with self._task_lock:
             task.status = "running"
             task.started_at = utc_now()
-            await self.log_service.write("system", f"Task started: {task.title}")
+            await self.log_service.write("system", f"Task gestartet: {task.title}")
 
             try:
                 process = await asyncio.create_subprocess_exec(
@@ -163,7 +163,7 @@ class TaskManager:
                 task.exit_code = -1
                 task.finished_at = utc_now()
                 task.output_lines.append(str(exc))
-                await self.log_service.write("system", f"Task failed to start: {task.title} ({exc})")
+                await self.log_service.write("system", f"Task konnte nicht gestartet werden: {task.title} ({exc})")
                 return
 
             assert process.stdout is not None
@@ -179,7 +179,7 @@ class TaskManager:
             task.status = "success" if task.exit_code == 0 else "failed"
             await self.log_service.write(
                 "system",
-                f"Task finished: {task.title} (exit={task.exit_code}, duration={human_duration((task.finished_at - task.started_at).total_seconds())})",
+                f"Task beendet: {task.title} (exit={task.exit_code}, Dauer={human_duration((task.finished_at - task.started_at).total_seconds())})",
             )
 
     def _build_environment(self) -> dict[str, str]:

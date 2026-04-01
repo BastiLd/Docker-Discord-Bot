@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page_title }} Â· {{ app_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
+</head>
+<body data-page="{{ active_page }}">
+    <div class="layout-shell">
+        <aside class="sidebar-shell">
+            <div class="brand-card panel-surface">
+                <a class="brand-link" href="/dashboard">
+                    <span class="brand-mark" aria-hidden="true"></span>
+                    <div>
+                        <p class="eyebrow">Self-hosted Bot Control</p>
+                        <h1>{{ app_name }}</h1>
+                    </div>
+                </a>
+                <p class="brand-copy">Discord-Bots lokal starten, pflegen und Ã¼berwachen, ohne dass sich die OberflÃ¤che nach BastellÃ¶sung anfÃ¼hlt.</p>
+            </div>
+
+            <section class="server-card panel-surface">
+                <p class="section-label">Bot-Status</p>
+                <div class="server-card-head">
+                    <div>
+                        <strong class="server-name">Discord-Bot</strong>
+                        <p class="server-address">{{ server_address }}</p>
+                    </div>
+                    <span class="status-badge is-unknown" data-status-field="badge">Unbekannt</span>
+                </div>
+                <dl class="mini-stats">
+                    <div>
+                        <dt>Prozess</dt>
+                        <dd data-status-field="state_text">Lade Status â€¦</dd>
+                    </div>
+                    <div>
+                        <dt>PID</dt>
+                        <dd data-status-field="pid">-</dd>
+                    </div>
+                    <div>
+                        <dt>Uptime</dt>
+                        <dd data-status-field="uptime">-</dd>
+                    </div>
+                    <div>
+                        <dt>Exit-Code</dt>
+                        <dd data-status-field="exit">-</dd>
+                    </div>
+                </dl>
+                <div class="sidebar-actions">
+                    <button class="action-button is-start" type="button" data-bot-action="start">Starten</button>
+                    <button class="action-button is-restart" type="button" data-bot-action="restart">Neustarten</button>
+                    <button class="action-button is-stop" type="button" data-bot-action="stop">Stoppen</button>
+                </div>
+                <p class="sidebar-error" data-status-field="error"></p>
+            </section>
+
+            <nav class="nav-groups" aria-label="Navigation">
+                {% for group in navigation %}
+                <section class="nav-group">
+                    <p class="nav-group-title">{{ group["section"] }}</p>
+                    <div class="nav-list">
+                        {% for item in group["items"] %}
+                        <a class="nav-link {% if active_page == item.key %}is-active{% endif %}" href="{{ item.href }}">
+                            <span class="nav-link-dot" aria-hidden="true"></span>
+                            <span>{{ item.label }}</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% endfor %}
+            </nav>
+
+            <section class="meta-card panel-surface">
+                <p class="section-label">Workspace</p>
+                <code>{{ workspace_path }}</code>
+            </section>
+
+            {% if not auth_enabled %}
+            <section class="meta-card panel-surface panel-warning">
+                <p class="section-label">Sicherheit</p>
+                <p>Die OberflÃ¤che ist aktuell ohne Login erreichbar. Nutze sie nur lokal oder geschÃ¼tzt hinter Reverse Proxy, VPN oder ZugriffsbeschrÃ¤nkung.</p>
+            </section>
+            {% endif %}
+        </aside>
+
+        <div class="main-shell">
+            <header class="page-topbar">
+                <div>
+                    <p class="eyebrow">{{ page_kicker }}</p>
+                    <h2>{{ page_heading }}</h2>
+                    <p class="page-description">{{ page_description }}</p>
+                </div>
+                <div class="topbar-meta">
+                    <span class="meta-pill">{{ page_title }}</span>
+                    <span class="meta-pill">{{ server_address }}</span>
+                </div>
+            </header>
+
+            <main class="page-shell">
+                {% block page_body %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <div class="toast-stack" id="toastStack"></div>
+
+    <div class="modal-shell hidden" id="modalShell">
+        <div class="modal-card panel-surface">
+            <div class="modal-head">
+                <div>
+                    <p class="eyebrow" id="modalEyebrow">Aktion</p>
+                    <h3 id="modalTitle">Dialog</h3>
+                </div>
+                <button class="icon-button" type="button" id="modalCancelBtn" aria-label="Dialog schlieÃŸen">Ã—</button>
+            </div>
+            <p class="modal-description" id="modalDescription"></p>
+            <form class="modal-form" id="modalForm">
+                <label class="field-block" id="modalFieldOneWrap">
+                    <span id="modalFieldOneLabel">Wert</span>
+                    <input id="modalFieldOneInput" type="text">
+                </label>
+                <label class="field-block hidden" id="modalFieldTwoWrap">
+                    <span id="modalFieldTwoLabel">Wert</span>
+                    <input id="modalFieldTwoInput" type="text">
+                </label>
+                <div class="modal-actions">
+                    <button class="secondary-button" type="button" id="modalSecondaryBtn">Abbrechen</button>
+                    <button class="primary-button" type="submit" id="modalConfirmBtn">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        window.__INITIAL_STATE__ = {
+            settings: {{ settings | tojson }},
+            envEntries: {{ env_entries | tojson }},
+            authEnabled: {{ auth_enabled | tojson }},
+            page: {{ active_page | tojson }},
+            workspacePath: {{ workspace_path | tojson }},
+            serverAddress: {{ server_address | tojson }}
+        };
+    </script>
+    {% block page_scripts %}{% endblock %}
+    <script src="{{ url_for('static', path='/js/app.js') }}" defer></script>
+</body>
+</html>

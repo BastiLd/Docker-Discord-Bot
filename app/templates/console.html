@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block page_body %}
+<section class="hero-banner panel-surface compact-hero">
+    <div class="hero-copy-block">
+        <p class="section-label">Sicheres Web-Terminal</p>
+        <h3>Gezielte Befehle im Workspace, ohne freie Shell und ohne unnötiges Risiko.</h3>
+        <p>Erlaubt sind nur definierte Einzelbefehle. Verkettungen, Umleitungen und absolute Pfade bleiben gesperrt.</p>
+    </div>
+</section>
+
+<section class="content-stack">
+    <article class="panel-surface content-panel">
+        <div class="panel-head between">
+            <div>
+                <p class="section-label">Konsole</p>
+                <h3>Befehl ausführen</h3>
+            </div>
+            <span class="meta-pill">Sicherheitsfilter aktiv</span>
+        </div>
+        <form class="console-form" id="consoleForm">
+            <input id="consoleInput" type="text" placeholder="z. B. python --version, pip list, ls, tree, find . -maxdepth 2">
+            <button class="primary-button" type="submit">Ausführen</button>
+        </form>
+        <div class="hint-grid">
+            <span class="hint-pill">Erlaubt: python, pip, ls, find, cat, head, tail, grep, env, tree</span>
+            <span class="hint-pill">Gesperrt: |, &&, ;, >, <, absolute Pfade, ..</span>
+        </div>
+    </article>
+
+    <section class="task-grid">
+        <article class="panel-surface content-panel task-list-panel">
+            <div class="panel-head">
+                <div>
+                    <p class="section-label">Tasks</p>
+                    <h3>Letzte Ausführungen</h3>
+                </div>
+            </div>
+            <div class="task-list" id="taskList"></div>
+        </article>
+
+        <article class="panel-surface content-panel task-output-panel">
+            <div class="panel-head">
+                <div>
+                    <p class="section-label">Ausgabe</p>
+                    <h3>Task-Protokoll</h3>
+                </div>
+            </div>
+            <pre class="terminal-preview task-output" id="taskOutput">Noch kein Task ausgewählt.</pre>
+        </article>
+    </section>
+</section>
+{% endblock %}
