@@ -1,0 +1,6 @@
+{
+  "start_command": "python bot.py",
+  "auto_restart": true,
+  "restart_delay_seconds": 5,
+  "use_virtualenv": true
+}

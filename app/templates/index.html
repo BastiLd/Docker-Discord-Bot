@@ -1,0 +1,295 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ app_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand-block">
+                <p class="eyebrow">Self-hosted control plane</p>
+                <h1>{{ app_name }}</h1>
+                <p class="muted">Discord-Bots lokal deployen, pflegen und ueberwachen.</p>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button class="nav-link active" data-target="dashboard">Dashboard</button>
+                <button class="nav-link" data-target="files">Dateien</button>
+                <button class="nav-link" data-target="environment">Umgebung</button>
+                <button class="nav-link" data-target="console">Konsole</button>
+                <button class="nav-link" data-target="logs">Logs</button>
+            </nav>
+
+            <div class="sidebar-card">
+                <span class="label">Workspace</span>
+                <code>{{ workspace_path }}</code>
+            </div>
+
+            {% if not auth_enabled %}
+            <div class="sidebar-card warning-card">
+                <span class="label">Sicherheit</span>
+                <p>UI aktuell ohne Login. Nur lokal oder hinter Reverse Proxy / VPN freigeben.</p>
+            </div>
+            {% endif %}
+        </aside>
+
+        <main class="main-content">
+            <section class="hero" id="dashboard">
+                <div class="hero-copy">
+                    <p class="eyebrow">Bot runtime</p>
+                    <h2>Ein Ort fuer Bot-Status, Workspace und Deploy-Operationen.</h2>
+                    <p class="muted">Dateien hochladen, Abhaengigkeiten installieren, .env pflegen und den Bot-Prozess ohne Shell-Hopping steuern.</p>
+                </div>
+                <div class="hero-actions">
+                    <button class="button primary" id="startBotBtn">Start</button>
+                    <button class="button" id="stopBotBtn">Stop</button>
+                    <button class="button" id="restartBotBtn">Restart</button>
+                </div>
+            </section>
+
+            <section class="summary-grid">
+                <article class="panel status-panel">
+                    <div class="panel-header">
+                        <div>
+                            <p class="label">Bot status</p>
+                            <h3 id="statusState">Lade Status...</h3>
+                        </div>
+                        <span class="status-pill unknown" id="statusBadge">unknown</span>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-label">PID</span>
+                            <strong id="statusPid">-</strong>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Uptime</span>
+                            <strong id="statusUptime">-</strong>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Exit</span>
+                            <strong id="statusExit">-</strong>
+                        </div>
+                        <div class="stat-card wide">
+                            <span class="stat-label">Start command</span>
+                            <strong id="statusCommand">python bot.py</strong>
+                        </div>
+                    </div>
+                    <p class="error-text" id="statusError"></p>
+                </article>
+
+                <article class="panel settings-panel">
+                    <div class="panel-header">
+                        <div>
+                            <p class="label">Runtime settings</p>
+                            <h3>Start-Command und Python-Umgebung</h3>
+                        </div>
+                    </div>
+                    <div class="field-stack">
+                        <label class="field">
+                            <span>Start command</span>
+                            <input id="startCommandInput" type="text" placeholder="python bot.py">
+                        </label>
+                        <div class="switch-row">
+                            <label class="checkbox-pill">
+                                <input id="autoRestartInput" type="checkbox">
+                                <span>Auto-Restart bei Crash</span>
+                            </label>
+                            <label class="checkbox-pill">
+                                <input id="useVenvInput" type="checkbox">
+                                <span>Persistente venv verwenden</span>
+                            </label>
+                        </div>
+                        <label class="field slim">
+                            <span>Restart delay (seconds)</span>
+                            <input id="restartDelayInput" type="number" min="1" max="300">
+                        </label>
+                        <div class="inline-actions">
+                            <button class="button primary" id="saveSettingsBtn">Settings speichern</button>
+                            <button class="button accent" id="installDepsBtn">Install dependencies</button>
+                        </div>
+                        <div class="inline-actions package-row">
+                            <input id="packageInput" type="text" placeholder="z. B. py-cord==2.6.1">
+                            <button class="button" id="installPackageBtn">Install single package</button>
+                        </div>
+                    </div>
+                </article>
+            </section>
+
+            <section class="content-grid" id="files">
+                <article class="panel file-panel">
+                    <div class="panel-header panel-header-wrap">
+                        <div>
+                            <p class="label">File manager</p>
+                            <h3>Workspace-Dateien und ZIP-Import/Export</h3>
+                        </div>
+                        <div class="toolbar">
+                            <button class="button subtle" id="navigateUpBtn">Up</button>
+                            <button class="button subtle" id="refreshFilesBtn">Refresh</button>
+                            <button class="button subtle" id="newFileBtn">Neue Datei</button>
+                            <button class="button subtle" id="newFolderBtn">Neuer Ordner</button>
+                            <button class="button subtle" id="uploadFilesBtn">Datei-Upload</button>
+                            <button class="button subtle" id="uploadArchiveBtn">ZIP-Upload</button>
+                        </div>
+                    </div>
+
+                    <div class="breadcrumbs" id="breadcrumbs"></div>
+
+                    <div class="toolbar toolbar-stretch">
+                        <input class="search-input" id="fileSearchInput" type="search" placeholder="Dateien im aktuellen Ordner filtern">
+                        <div class="toolbar">
+                            <button class="button danger" id="bulkDeleteBtn" disabled>Bulk delete</button>
+                            <button class="button" id="bulkDownloadBtn" disabled>Bulk download ZIP</button>
+                            <button class="button" id="bulkMoveBtn" disabled>Move</button>
+                            <button class="button" id="bulkCopyBtn" disabled>Copy</button>
+                        </div>
+                    </div>
+
+                    <div class="dropzone" id="dropzone">
+                        <strong>Dateien oder ZIP hierher ziehen</strong>
+                        <span>Mehrfach-Upload moeglich. ZIPs koennen direkt entpackt werden.</span>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="file-table">
+                            <thead>
+                                <tr>
+                                    <th><input id="selectAllCheckbox" type="checkbox"></th>
+                                    <th>Name</th>
+                                    <th>Typ</th>
+                                    <th>Groesse</th>
+                                    <th>Geaendert</th>
+                                    <th>Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fileTableBody"></tbody>
+                        </table>
+                    </div>
+                </article>
+
+                <article class="panel editor-panel">
+                    <div class="panel-header">
+                        <div>
+                            <p class="label">Editor</p>
+                            <h3 id="editorTitle">Keine Datei geoeffnet</h3>
+                        </div>
+                        <div class="toolbar">
+                            <span class="editor-badge" id="editorLanguage">text</span>
+                            <span class="editor-dirty" id="editorDirtyBadge">Saved</span>
+                            <button class="button subtle" id="reloadFileBtn" disabled>Reload</button>
+                            <button class="button primary" id="saveFileBtn" disabled>Save</button>
+                        </div>
+                    </div>
+                    <textarea id="editorTextarea" class="editor-textarea" spellcheck="false" placeholder="Datei im Dateimanager auswaehlen, um sie hier zu bearbeiten."></textarea>
+                    <div class="editor-footer">
+                        <span id="editorMeta">Keine Datei geladen</span>
+                    </div>
+                </article>
+            </section>
+
+            <section class="lower-grid" id="environment">
+                <article class="panel env-panel">
+                    <div class="panel-header">
+                        <div>
+                            <p class="label">Environment</p>
+                            <h3>.env Variablen</h3>
+                        </div>
+                        <div class="toolbar">
+                            <button class="button subtle" id="addEnvBtn">Variable hinzufuegen</button>
+                            <button class="button primary" id="saveEnvBtn">.env speichern</button>
+                        </div>
+                    </div>
+                    <div class="env-list" id="envList"></div>
+                </article>
+
+                <article class="panel console-panel" id="console">
+                    <div class="panel-header">
+                        <div>
+                            <p class="label">Safe console</p>
+                            <h3>Begrenzte Befehle im Workspace</h3>
+                        </div>
+                    </div>
+                    <form class="console-form" id="consoleForm">
+                        <input id="consoleInput" type="text" placeholder="z. B. python --version, pip list, ls -la">
+                        <button class="button primary" type="submit">Run</button>
+                    </form>
+                    <p class="muted small">Erlaubt sind nur sichere Einzelbefehle ohne Shell-Verkettung oder absolute Pfade.</p>
+                    <div class="task-layout">
+                        <div class="task-list" id="taskList"></div>
+                        <pre class="log-output task-output" id="taskOutput"></pre>
+                    </div>
+                </article>
+            </section>
+
+            <section class="logs-grid" id="logs">
+                <article class="panel logs-panel">
+                    <div class="panel-header panel-header-wrap">
+                        <div>
+                            <p class="label">Live logs</p>
+                            <h3>Bot-Logs und System-/Task-Logs</h3>
+                        </div>
+                        <div class="toolbar">
+                            <button class="tab-button active" data-log-tab="bot">Bot logs</button>
+                            <button class="tab-button" data-log-tab="system">System logs</button>
+                            <a class="button subtle" id="downloadLogsLink" href="/api/logs/bot/download">Log herunterladen</a>
+                        </div>
+                    </div>
+                    <pre class="log-output" id="logOutput"></pre>
+                </article>
+
+                <article class="panel history-panel">
+                    <div class="panel-header">
+                        <div>
+                            <p class="label">Lifecycle</p>
+                            <h3>Start / Stop / Crash Verlauf</h3>
+                        </div>
+                    </div>
+                    <div class="history-list" id="historyList"></div>
+                </article>
+            </section>
+        </main>
+    </div>
+
+    <div class="toast-stack" id="toastStack"></div>
+
+    <div class="modal-shell hidden" id="modalShell">
+        <div class="modal-card">
+            <div class="panel-header">
+                <div>
+                    <p class="label" id="modalEyebrow">Aktion</p>
+                    <h3 id="modalTitle">Dialog</h3>
+                </div>
+            </div>
+            <p class="muted" id="modalDescription"></p>
+            <form id="modalForm" class="modal-form">
+                <label class="field" id="modalFieldOneWrap">
+                    <span id="modalFieldOneLabel">Wert</span>
+                    <input id="modalFieldOneInput" type="text">
+                </label>
+                <label class="field hidden" id="modalFieldTwoWrap">
+                    <span id="modalFieldTwoLabel">Wert</span>
+                    <input id="modalFieldTwoInput" type="text">
+                </label>
+                <div class="inline-actions right">
+                    <button class="button subtle" type="button" id="modalCancelBtn">Abbrechen</button>
+                    <button class="button primary" type="submit" id="modalConfirmBtn">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <input id="uploadFilesInput" type="file" multiple hidden>
+    <input id="uploadArchiveInput" type="file" accept=".zip" multiple hidden>
+
+    <script>
+        window.__INITIAL_STATE__ = {
+            settings: {{ settings | tojson }},
+            envEntries: {{ env_entries | tojson }},
+            authEnabled: {{ auth_enabled | tojson }}
+        };
+    </script>
+    <script src="{{ url_for('static', path='/js/app.js') }}" defer></script>
+</body>
+</html>
