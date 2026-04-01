@@ -38,6 +38,7 @@ async def index(request: Request) -> HTMLResponse:
     settings = state.settings_service.get()
     env_entries = state.env_service.list_entries()
     return state.templates.TemplateResponse(
+        request,
         "index.html",
         {
             "request": request,
