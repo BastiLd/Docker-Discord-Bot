@@ -1,0 +1,35 @@
+﻿{% extends "base.html" %}
+
+{% block page_body %}
+<section class="surface">
+    <div class="surface-header toolbar-spread">
+        <div>
+            <p class="section-label">{{ ui["nav.network"] }}</p>
+            <h1>{{ ui["network.heading"] }}</h1>
+        </div>
+        <button class="btn btn-primary" id="saveNetworkBtn" type="button">{{ ui["network.save"] }}</button>
+    </div>
+    <div class="table-wrap">
+        <table class="data-table compact-network-table">
+            <thead>
+                <tr>
+                    <th>{{ ui["network.ip"] }}</th>
+                    <th>{{ ui["network.port"] }}</th>
+                    <th>{{ ui["network.notes"] }}</th>
+                    <th>{{ ui["network.primary"] }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td id="networkHostCell">{{ server_address }}</td>
+                    <td id="networkPortCell">-</td>
+                    <td>
+                        <input id="networkNoteInput" type="text" value="{{ panel_meta.network_note }}">
+                    </td>
+                    <td><span class="status-pill">{{ ui["network.primary"] }}</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

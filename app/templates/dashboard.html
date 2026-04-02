@@ -1,116 +1,99 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block page_body %}
-<section class="banner-card panel-surface">
-    <div class="banner-art" aria-hidden="true">
-        <div class="python-top"></div>
-        <div class="python-bottom"></div>
+<section class="surface hero-surface">
+    <div class="surface-header">
+        <div>
+            <p class="section-label">{{ ui["nav.dashboard"] }}</p>
+            <h1>{{ ui["dashboard.heading"] }}</h1>
+            <p class="surface-note">{{ panel_meta.description or server_address }}</p>
+        </div>
+        <a class="btn btn-secondary" href="/activity">{{ ui["dashboard.open_activity"] }}</a>
+    </div>
+    <div class="hero-banner" aria-hidden="true">
+        <div class="python-shape python-top"></div>
+        <div class="python-shape python-bottom"></div>
         <div class="python-cut python-cut-top"></div>
         <div class="python-cut python-cut-bottom"></div>
     </div>
 </section>
 
-<section class="stats-row stats-row-three">
-    <article class="stat-card panel-surface">
-        <div class="stat-copy">
-            <span class="stat-label">Status</span>
-            <strong class="stat-value" data-status-field="state_text">Lade Status ...</strong>
-        </div>
-        <span class="stat-chip stat-chip-cpu" aria-hidden="true"></span>
+<section class="stats-grid">
+    <article class="surface metric-card">
+        <span class="metric-label">{{ ui["dashboard.cpu"] }}</span>
+        <strong class="metric-value" data-metric-field="cpu-primary">0%</strong>
+        <span class="metric-meta" data-metric-field="cpu-secondary">{{ ui["status.unknown"] }}</span>
     </article>
-    <article class="stat-card panel-surface">
-        <div class="stat-copy">
-            <span class="stat-label">Uptime</span>
-            <strong class="stat-value" data-status-field="uptime">-</strong>
-        </div>
-        <span class="stat-chip stat-chip-ram" aria-hidden="true"></span>
+    <article class="surface metric-card">
+        <span class="metric-label">{{ ui["dashboard.memory"] }}</span>
+        <strong class="metric-value" data-metric-field="memory-primary">{{ ui["common.none"] }}</strong>
+        <span class="metric-meta" data-metric-field="memory-secondary"></span>
     </article>
-    <article class="stat-card panel-surface">
-        <div class="stat-copy">
-            <span class="stat-label">Exit-Code</span>
-            <strong class="stat-value" data-status-field="exit">-</strong>
-        </div>
-        <span class="stat-chip stat-chip-disk" aria-hidden="true"></span>
+    <article class="surface metric-card">
+        <span class="metric-label">{{ ui["dashboard.disk"] }}</span>
+        <strong class="metric-value" data-metric-field="disk-primary">{{ ui["common.none"] }}</strong>
+        <span class="metric-meta" data-metric-field="disk-secondary"></span>
     </article>
 </section>
 
-<section class="dashboard-grid">
-    <article class="panel-surface info-card">
-        <div class="panel-header">
+<section class="split-main">
+    <article class="surface">
+        <div class="surface-header">
             <div>
-                <p class="eyebrow">Server Info</p>
-                <h3>Laufzeit</h3>
+                <p class="section-label">{{ ui["dashboard.heading"] }}</p>
+                <h2>{{ ui["dashboard.server_details"] }}</h2>
             </div>
         </div>
-        <dl class="info-list">
+        <dl class="info-table">
             <div>
-                <dt>Status</dt>
-                <dd><span class="status-badge is-unknown" data-status-field="badge">Unbekannt</span></dd>
+                <dt>{{ ui["layout.status"] }}</dt>
+                <dd><span class="status-pill is-unknown" data-status-field="badge">{{ ui["status.unknown"] }}</span></dd>
             </div>
             <div>
-                <dt>PID</dt>
-                <dd data-status-field="pid">-</dd>
+                <dt>{{ ui["layout.uptime"] }}</dt>
+                <dd data-status-field="uptime">{{ ui["common.none"] }}</dd>
             </div>
             <div>
-                <dt>Startbefehl</dt>
-                <dd data-status-field="command">python bot.py</dd>
-            </div>
-            <div>
-                <dt>Adresse</dt>
+                <dt>{{ ui["dashboard.hostname"] }}</dt>
                 <dd>{{ server_address }}</dd>
             </div>
             <div>
-                <dt>Workspace</dt>
+                <dt>{{ ui["dashboard.workspace"] }}</dt>
                 <dd>{{ workspace_path }}</dd>
+            </div>
+            <div>
+                <dt>{{ ui["dashboard.start_command"] }}</dt>
+                <dd data-status-field="command">python bot.py</dd>
+            </div>
+            <div>
+                <dt>{{ ui["dashboard.last_exit"] }}</dt>
+                <dd data-status-field="exit">-</dd>
+            </div>
+            <div>
+                <dt>{{ ui["dashboard.server_id"] }}</dt>
+                <dd>{{ panel_meta.server_id }}</dd>
             </div>
         </dl>
     </article>
 
-    <article class="panel-surface info-card">
-        <div class="panel-header between">
+    <article class="surface side-surface">
+        <div class="surface-header">
             <div>
-                <p class="eyebrow">Aktivität</p>
-                <h3>Letzte Ereignisse</h3>
+                <p class="section-label">{{ ui["activity.heading"] }}</p>
+                <h2>{{ ui["dashboard.process_events"] }}</h2>
             </div>
-            <a class="ghost-button" href="/activity">Alle Logs</a>
         </div>
-        <div class="history-list dashboard-history" id="historyList"></div>
+        <div class="list-stack" id="historyList"></div>
     </article>
 </section>
 
-<section class="dashboard-grid dashboard-grid-bottom">
-    <article class="panel-surface info-card">
-        <div class="panel-header between">
-            <div>
-                <p class="eyebrow">Bot-Logs</p>
-                <h3>Live-Vorschau</h3>
-            </div>
-            <a class="ghost-button" href="/console">Zur Konsole</a>
+<section class="surface">
+    <div class="surface-header">
+        <div>
+            <p class="section-label">{{ ui["activity.bot_logs"] }}</p>
+            <h2>{{ ui["dashboard.live_logs"] }}</h2>
         </div>
-        <pre class="terminal-preview terminal-preview-compact" id="dashboardLogPreview">Warte auf Bot-Logs ...</pre>
-    </article>
-
-    <article class="panel-surface info-card action-card">
-        <div class="panel-header">
-            <div>
-                <p class="eyebrow">Schnellzugriff</p>
-                <h3>Nächste Schritte</h3>
-            </div>
-        </div>
-        <div class="shortcut-grid">
-            <a class="shortcut-link" href="/files">
-                <strong>Dateien</strong>
-                <span>Bot-Projekt hochladen und direkt bearbeiten</span>
-            </a>
-            <a class="shortcut-link" href="/settings">
-                <strong>Einstellungen</strong>
-                <span>.env pflegen und sensible Werte maskiert halten</span>
-            </a>
-            <a class="shortcut-link" href="/startup">
-                <strong>Start & Pakete</strong>
-                <span>requirements installieren und Startbefehl setzen</span>
-            </a>
-        </div>
-    </article>
+    </div>
+    <pre class="terminal-output dashboard-terminal" id="dashboardLogPreview">{{ ui["activity.waiting"] }}</pre>
 </section>
 {% endblock %}

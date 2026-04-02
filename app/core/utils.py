@@ -13,6 +13,12 @@ def isoformat(dt: datetime | None) -> str | None:
     return dt.astimezone().isoformat(timespec="seconds")
 
 
+def parse_isoformat(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    return datetime.fromisoformat(value)
+
+
 def human_duration(seconds: float | int | None) -> str:
     if seconds is None:
         return "n/a"

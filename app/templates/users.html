@@ -1,0 +1,13 @@
+﻿{% extends "base.html" %}
+
+{% block page_body %}
+<section class="surface">
+    <div class="surface-header toolbar-spread">
+        <div>
+            <p class="section-label">{{ ui["nav.users"] }}</p>
+            <h1>{{ ui["users.heading"] }}</h1>
+        </div>
+    </div>
+    <div class="empty-state static-empty">{{ ui["users.empty"] }}</div>
+</section>
+{% endblock %}

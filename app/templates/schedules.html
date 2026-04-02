@@ -1,0 +1,66 @@
+﻿{% extends "base.html" %}
+
+{% block page_body %}
+<section class="surface">
+    <div class="surface-header toolbar-spread">
+        <div>
+            <p class="section-label">{{ ui["nav.schedules"] }}</p>
+            <h1>{{ ui["schedules.heading"] }}</h1>
+        </div>
+        <button class="btn btn-primary" id="newScheduleBtn" type="button">{{ ui["schedules.create"] }}</button>
+    </div>
+
+    <form class="schedule-form hidden" id="scheduleForm">
+        <input id="scheduleIdInput" type="hidden">
+        <div class="field-grid">
+            <label class="field">
+                <span>{{ ui["schedules.name"] }}</span>
+                <input id="scheduleNameInput" type="text">
+            </label>
+            <label class="field field-medium">
+                <span>{{ ui["schedules.action"] }}</span>
+                <select id="scheduleActionInput">
+                    <option value="bot_start">{{ ui["schedule.bot_start"] }}</option>
+                    <option value="bot_stop">{{ ui["schedule.bot_stop"] }}</option>
+                    <option value="bot_restart">{{ ui["schedule.bot_restart"] }}</option>
+                    <option value="install_deps">{{ ui["schedule.install_deps"] }}</option>
+                    <option value="console">{{ ui["schedule.console"] }}</option>
+                </select>
+            </label>
+            <label class="field field-medium">
+                <span>{{ ui["schedules.interval"] }}</span>
+                <input id="scheduleIntervalInput" type="number" min="1" max="10080" value="5">
+            </label>
+            <label class="field field-span-2" id="scheduleCommandWrap">
+                <span>{{ ui["schedules.command"] }}</span>
+                <input id="scheduleCommandInput" type="text">
+            </label>
+            <label class="checkbox-field">
+                <input id="scheduleEnabledInput" type="checkbox" checked>
+                <span>{{ ui["schedules.enabled"] }}</span>
+            </label>
+        </div>
+        <div class="toolbar-actions">
+            <button class="btn btn-primary" id="saveScheduleBtn" type="submit">{{ ui["schedules.save"] }}</button>
+            <button class="btn btn-secondary" id="cancelScheduleBtn" type="button">{{ ui["schedules.cancel"] }}</button>
+        </div>
+    </form>
+
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{{ ui["schedules.name"] }}</th>
+                    <th>{{ ui["schedules.action"] }}</th>
+                    <th>{{ ui["schedules.interval"] }}</th>
+                    <th>{{ ui["schedules.next_run"] }}</th>
+                    <th>{{ ui["schedules.last_run"] }}</th>
+                    <th>{{ ui["schedules.status"] }}</th>
+                    <th>{{ ui["schedules.actions"] }}</th>
+                </tr>
+            </thead>
+            <tbody id="scheduleTableBody"></tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

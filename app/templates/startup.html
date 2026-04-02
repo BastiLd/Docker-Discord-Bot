@@ -1,81 +1,100 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block page_body %}
-<section class="startup-grid-top">
-    <article class="panel-surface startup-card">
-        <div class="panel-header between">
+<section class="split-main startup-layout">
+    <article class="surface">
+        <div class="surface-header toolbar-spread">
             <div>
-                <p class="eyebrow">Startup Command</p>
-                <h3>Startbefehl</h3>
+                <p class="section-label">{{ ui["nav.startup"] }}</p>
+                <h1>{{ ui["startup.heading"] }}</h1>
             </div>
-            <button class="primary-button" id="saveSettingsBtn" type="button">Speichern</button>
+            <button class="btn btn-primary" id="saveSettingsBtn" type="button">{{ ui["startup.save"] }}</button>
         </div>
-        <div class="form-grid tight-form-grid">
-            <label class="field-block">
-                <span>Startbefehl</span>
+        <div class="field-grid">
+            <label class="field field-span-2">
+                <span>{{ ui["startup.command"] }}</span>
                 <input id="startCommandInput" type="text" placeholder="python bot.py">
             </label>
-            <div class="toggle-row startup-toggle-row">
-                <label class="toggle-card">
-                    <input id="autoRestartInput" type="checkbox">
-                    <div>
-                        <strong>Automatischer Neustart</strong>
-                        <span>Startet den Bot nach einem Absturz erneut.</span>
-                    </div>
-                </label>
-                <label class="toggle-card">
-                    <input id="useVenvInput" type="checkbox">
-                    <div>
-                        <strong>Persistente venv</strong>
-                        <span>Pakete bleiben im gemounteten Volume erhalten.</span>
-                    </div>
-                </label>
-            </div>
-            <label class="field-block field-medium">
-                <span>Neustart-Verzögerung in Sekunden</span>
+            <label class="checkbox-field">
+                <input id="autoRestartInput" type="checkbox">
+                <span>{{ ui["startup.auto_restart"] }}</span>
+            </label>
+            <label class="checkbox-field">
+                <input id="useVenvInput" type="checkbox">
+                <span>{{ ui["startup.use_venv"] }}</span>
+            </label>
+            <label class="field field-medium">
+                <span>{{ ui["startup.restart_delay"] }}</span>
                 <input id="restartDelayInput" type="number" min="1" max="300">
             </label>
         </div>
     </article>
 
-    <article class="panel-surface startup-card startup-card-side">
-        <div class="panel-header between">
+    <article class="surface side-surface">
+        <div class="surface-header">
             <div>
-                <p class="eyebrow">Pakete</p>
-                <h3>requirements.txt und einzelne Pakete installieren</h3>
+                <p class="section-label">{{ ui["startup.runtime"] }}</p>
+                <h2>{{ ui["startup.runtime"] }}</h2>
             </div>
-            <button class="secondary-button" id="installDepsBtn" type="button">requirements.txt installieren</button>
         </div>
-        <div class="install-row startup-install-row">
-            <label class="field-block grow">
-                <span>Einzelnes Paket</span>
-                <input id="packageInput" type="text" placeholder="z. B. py-cord==2.6.1">
+        <dl class="info-table compact-table">
+            <div>
+                <dt>{{ ui["startup.python_version"] }}</dt>
+                <dd>{{ runtime_version }}</dd>
+            </div>
+            <div>
+                <dt>{{ ui["startup.venv_path"] }}</dt>
+                <dd>{{ workspace_path.replace('workspace', 'venv') }}</dd>
+            </div>
+            <div>
+                <dt>{{ ui["layout.status"] }}</dt>
+                <dd data-status-field="state_text">{{ ui["status.unknown"] }}</dd>
+            </div>
+        </dl>
+        <div class="package-install-row">
+            <button class="btn btn-secondary" id="installDepsBtn" type="button">{{ ui["startup.install_deps"] }}</button>
+            <label class="field grow-field">
+                <span>{{ ui["startup.package_name"] }}</span>
+                <input id="packageInput" type="text">
             </label>
-            <button class="primary-button" id="installPackageBtn" type="button">Paket installieren</button>
+            <button class="btn btn-primary" id="installPackageBtn" type="button">{{ ui["startup.install_package"] }}</button>
         </div>
-        <p class="panel-footnote">Die Installation läuft als eigener Task und bleibt im Aufgabenprotokoll nachvollziehbar.</p>
     </article>
 </section>
 
-<section class="startup-grid-bottom">
-    <article class="panel-surface task-list-panel">
-        <div class="panel-header">
+<section class="surface">
+    <div class="surface-header toolbar-spread">
+        <div>
+            <p class="section-label">{{ ui["startup.environment"] }}</p>
+            <h2>{{ ui["startup.environment"] }}</h2>
+        </div>
+        <div class="toolbar-actions">
+            <button class="btn btn-secondary" id="addEnvBtn" type="button">{{ ui["startup.add_variable"] }}</button>
+            <button class="btn btn-primary" id="saveEnvBtn" type="button">{{ ui["startup.save_env"] }}</button>
+        </div>
+    </div>
+    <div class="env-list" id="envList"></div>
+</section>
+
+<section class="split-main task-layout">
+    <article class="surface side-surface">
+        <div class="surface-header">
             <div>
-                <p class="eyebrow">Aufgaben</p>
-                <h3>Letzte Installationen und Befehle</h3>
+                <p class="section-label">{{ ui["startup.tasks"] }}</p>
+                <h2>{{ ui["startup.tasks"] }}</h2>
             </div>
         </div>
         <div class="task-list" id="taskList"></div>
     </article>
 
-    <article class="panel-surface task-output-panel">
-        <div class="panel-header">
+    <article class="surface">
+        <div class="surface-header">
             <div>
-                <p class="eyebrow">Ausgabe</p>
-                <h3>Task-Protokoll</h3>
+                <p class="section-label">{{ ui["startup.output"] }}</p>
+                <h2>{{ ui["startup.output"] }}</h2>
             </div>
         </div>
-        <pre class="terminal-preview task-output" id="taskOutput">Noch kein Task ausgewählt.</pre>
+        <pre class="terminal-output console-terminal" id="taskOutput">{{ ui["console.empty"] }}</pre>
     </article>
 </section>
 {% endblock %}

@@ -1,15 +1,15 @@
-<!DOCTYPE html>
-<html lang="de">
+﻿<!DOCTYPE html>
+<html lang="{{ locale }}">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <meta name="theme-color" content="#4a35cf">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#11152e">
     <title>{{ page_title }} | {{ app_name }}</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
 </head>
-<body data-page="{{ active_page }}">
-    <div class="layout-shell">
+<body data-page="{{ active_page }}" data-locale="{{ locale }}">
+    <div class="app-shell">
         <aside class="sidebar-shell">
             <div class="sidebar-inner">
                 <a class="brand-link" href="/dashboard">
@@ -17,40 +17,34 @@
                     <span class="brand-name">{{ app_name }}</span>
                 </a>
 
-                <section class="server-panel">
-                    <div class="server-summary">
+                <section class="server-block">
+                    <div class="server-identity">
                         <span class="server-avatar" aria-hidden="true"></span>
                         <div>
-                            <strong class="server-name">Discord-Bot</strong>
-                            <p class="server-address">{{ server_address }}</p>
+                            <strong class="server-name">{{ panel_meta.display_name }}</strong>
+                            <span class="server-address">{{ server_address }}</span>
                         </div>
                     </div>
-                    <div class="quick-action-row">
-                        <button class="quick-action is-start" type="button" data-bot-action="start" aria-label="Bot starten" title="Bot starten">
-                            <span class="quick-icon quick-icon-play" aria-hidden="true"></span>
-                        </button>
-                        <button class="quick-action is-restart" type="button" data-bot-action="restart" aria-label="Bot neu starten" title="Bot neu starten">
-                            <span class="quick-icon quick-icon-restart" aria-hidden="true"></span>
-                        </button>
-                        <button class="quick-action is-stop" type="button" data-bot-action="stop" aria-label="Bot stoppen" title="Bot stoppen">
-                            <span class="quick-icon quick-icon-stop" aria-hidden="true"></span>
-                        </button>
+                    <div class="server-actions">
+                        <button class="action-button action-start" type="button" data-bot-action="start" aria-label="Start"></button>
+                        <button class="action-button action-restart" type="button" data-bot-action="restart" aria-label="Restart"></button>
+                        <button class="action-button action-stop" type="button" data-bot-action="stop" aria-label="Stop"></button>
                     </div>
-                    <dl class="server-stats compact-stats">
+                    <dl class="server-stats">
                         <div>
-                            <dt>Status</dt>
-                            <dd><span class="status-badge is-unknown" data-status-field="badge">Unbekannt</span></dd>
+                            <dt>{{ ui["layout.status"] }}</dt>
+                            <dd><span class="status-pill is-unknown" data-status-field="badge">{{ ui["status.unknown"] }}</span></dd>
                         </div>
                         <div>
-                            <dt>PID</dt>
+                            <dt>{{ ui["layout.pid"] }}</dt>
                             <dd data-status-field="pid">-</dd>
                         </div>
                         <div>
-                            <dt>Uptime</dt>
-                            <dd data-status-field="uptime">-</dd>
+                            <dt>{{ ui["layout.uptime"] }}</dt>
+                            <dd data-status-field="uptime">{{ ui["common.none"] }}</dd>
                         </div>
                     </dl>
-                    <p class="server-inline-error" data-status-field="error"></p>
+                    <p class="inline-error" data-status-field="error"></p>
                 </section>
 
                 <nav class="nav-groups" aria-label="Navigation">
@@ -73,35 +67,26 @@
                     <a class="account-link" href="/settings">
                         <span class="account-mark" aria-hidden="true"></span>
                         <div>
-                            <strong>Account</strong>
-                            <span>{% if auth_enabled %}UI-Schutz aktiv{% else %}Nur lokal empfohlen{% endif %}</span>
+                            <strong>{{ ui["layout.account"] }}</strong>
+                            <span>{% if auth_enabled %}{{ ui["layout.auth_enabled"] }}{% else %}{{ ui["layout.auth_disabled"] }}{% endif %}</span>
                         </div>
                     </a>
-                    <p class="workspace-inline" title="{{ workspace_path }}">{{ workspace_path }}</p>
+                    <p class="workspace-path" title="{{ workspace_path }}">{{ workspace_path }}</p>
                 </div>
             </div>
         </aside>
 
         <div class="main-shell">
-            <header class="page-topbar">
-                <button class="search-launcher" id="quickFocusBtn" type="button" aria-label="Schnellfokus"></button>
+            <header class="topbar">
+                <button class="quick-focus" id="quickFocusBtn" type="button" aria-label="{{ ui['layout.search'] }}"></button>
                 <div class="topbar-links">
-                    <a href="{{ support_links.discord }}" target="_blank" rel="noreferrer">Discord</a>
-                    <a href="{{ support_links.support }}" target="_blank" rel="noreferrer">Support center</a>
+                    <a href="{{ support_links.discord }}" target="_blank" rel="noreferrer">{{ ui["layout.discord"] }}</a>
+                    <a href="{{ support_links.support }}" target="_blank" rel="noreferrer">{{ ui["layout.support"] }}</a>
                 </div>
             </header>
 
             <main class="page-shell">
-                <div class="page-meta-bar">
-                    <div>
-                        <p class="page-kicker">{{ page_kicker }}</p>
-                        <h1>{{ page_heading }}</h1>
-                    </div>
-                    <p class="page-description">{{ page_description }}</p>
-                </div>
-                <div class="page-canvas page-canvas-{{ active_page }}">
-                    {% block page_body %}{% endblock %}
-                </div>
+                {% block page_body %}{% endblock %}
             </main>
         </div>
     </div>
@@ -109,27 +94,27 @@
     <div class="toast-stack" id="toastStack"></div>
 
     <div class="modal-shell hidden" id="modalShell">
-        <div class="modal-card panel-surface">
-            <div class="modal-head">
+        <div class="modal-card surface">
+            <div class="surface-header modal-header">
                 <div>
-                    <p class="eyebrow" id="modalEyebrow">Aktion</p>
+                    <p class="section-label" id="modalEyebrow">Action</p>
                     <h3 id="modalTitle">Dialog</h3>
                 </div>
-                <button class="icon-button" type="button" id="modalCancelBtn" aria-label="Dialog schließen">x</button>
+                <button class="btn btn-secondary btn-square" type="button" id="modalCancelBtn">x</button>
             </div>
-            <p class="modal-description" id="modalDescription"></p>
+            <p class="surface-note" id="modalDescription"></p>
             <form class="modal-form" id="modalForm">
-                <label class="field-block" id="modalFieldOneWrap">
-                    <span id="modalFieldOneLabel">Wert</span>
+                <label class="field">
+                    <span id="modalFieldOneLabel">Name</span>
                     <input id="modalFieldOneInput" type="text">
                 </label>
-                <label class="field-block hidden" id="modalFieldTwoWrap">
-                    <span id="modalFieldTwoLabel">Wert</span>
+                <label class="field hidden" id="modalFieldTwoWrap">
+                    <span id="modalFieldTwoLabel">Value</span>
                     <input id="modalFieldTwoInput" type="text">
                 </label>
-                <div class="modal-actions">
-                    <button class="secondary-button" type="button" id="modalSecondaryBtn">Abbrechen</button>
-                    <button class="primary-button" type="submit" id="modalConfirmBtn">Speichern</button>
+                <div class="toolbar-actions modal-actions">
+                    <button class="btn btn-secondary" type="button" id="modalSecondaryBtn">Cancel</button>
+                    <button class="btn btn-primary" type="submit" id="modalConfirmBtn">Save</button>
                 </div>
             </form>
         </div>
@@ -138,11 +123,16 @@
     <script>
         window.__INITIAL_STATE__ = {
             settings: {{ settings | tojson }},
+            panelMeta: {{ panel_meta | tojson }},
             envEntries: {{ env_entries | tojson }},
             authEnabled: {{ auth_enabled | tojson }},
             page: {{ active_page | tojson }},
             workspacePath: {{ workspace_path | tojson }},
-            serverAddress: {{ server_address | tojson }}
+            serverAddress: {{ server_address | tojson }},
+            locale: {{ locale | tojson }},
+            translations: {{ ui | tojson }},
+            runtimeVersion: {{ runtime_version | tojson }},
+            timezone: {{ timezone | tojson }}
         };
     </script>
     {% block page_scripts %}{% endblock %}

@@ -1,5 +1,6 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -7,6 +8,7 @@ from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, W
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from starlette.background import BackgroundTask
 
+from app.core.i18n import LOCALE_COOKIE, locale_cookie_value, translate, translations_for
 from app.core.schemas import (
     BotSettingsModel,
     ConsoleCommandRequest,
@@ -15,9 +17,11 @@ from app.core.schemas import (
     DownloadSelectionRequest,
     ExtractArchiveRequest,
     InstallPackageRequest,
+    PanelMetaUpdateModel,
     RenameEntryRequest,
     SaveEnvRequest,
     SaveFileRequest,
+    SaveScheduleRequest,
     TransferEntriesRequest,
 )
 
@@ -27,24 +31,29 @@ router = APIRouter()
 
 NAVIGATION: list[dict[str, Any]] = [
     {
-        "section": "Allgemein",
+        "section": "section.general",
         "items": [
-            {"key": "dashboard", "label": "Dashboard", "href": "/dashboard", "icon": "dashboard"},
-            {"key": "console", "label": "Konsole", "href": "/console", "icon": "console"},
-            {"key": "settings", "label": "Einstellungen", "href": "/settings", "icon": "settings"},
-            {"key": "activity", "label": "Aktivität", "href": "/activity", "icon": "activity"},
+            {"key": "dashboard", "href": "/dashboard", "icon": "dashboard"},
+            {"key": "console", "href": "/console", "icon": "console"},
+            {"key": "settings", "href": "/settings", "icon": "settings"},
+            {"key": "activity", "href": "/activity", "icon": "activity"},
         ],
     },
     {
-        "section": "Verwaltung",
+        "section": "section.management",
         "items": [
-            {"key": "files", "label": "Dateien", "href": "/files", "icon": "files"},
+            {"key": "files", "href": "/files", "icon": "files"},
+            {"key": "databases", "href": "/databases", "icon": "databases"},
+            {"key": "backups", "href": "/backups", "icon": "backups"},
+            {"key": "network", "href": "/network", "icon": "network"},
         ],
     },
     {
-        "section": "Konfiguration",
+        "section": "section.configuration",
         "items": [
-            {"key": "startup", "label": "Start & Pakete", "href": "/startup", "icon": "startup"},
+            {"key": "schedules", "href": "/schedules", "icon": "schedules"},
+            {"key": "users", "href": "/users", "icon": "users"},
+            {"key": "startup", "href": "/startup", "icon": "startup"},
         ],
     },
 ]
@@ -56,6 +65,21 @@ SUPPORT_LINKS = {
 }
 
 
+PAGE_TITLES = {
+    "dashboard": "nav.dashboard",
+    "console": "nav.console",
+    "settings": "nav.settings",
+    "activity": "nav.activity",
+    "files": "nav.files",
+    "databases": "nav.databases",
+    "backups": "nav.backups",
+    "network": "nav.network",
+    "schedules": "nav.schedules",
+    "users": "nav.users",
+    "startup": "nav.startup",
+}
+
+
 def _services(request: Request):
     return request.app.state
 
@@ -64,140 +88,119 @@ def _raise_bad_request(exc: Exception) -> None:
     raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-def _page_context(
-    request: Request,
-    *,
-    active_page: str,
-    page_title: str,
-    page_kicker: str,
-    page_heading: str,
-    page_description: str,
-) -> dict[str, Any]:
+def _locale(request: Request) -> str:
+    return locale_cookie_value(request.cookies.get(LOCALE_COOKIE))
+
+
+def _localized_navigation(locale: str) -> list[dict[str, Any]]:
+    return [
+        {
+            "section": translate(locale, group["section"]),
+            "items": [
+                {
+                    **item,
+                    "label": translate(locale, f"nav.{item['key']}"),
+                }
+                for item in group["items"]
+            ],
+        }
+        for group in NAVIGATION
+    ]
+
+
+def _page_context(request: Request, *, active_page: str) -> dict[str, Any]:
     state = _services(request)
+    locale = _locale(request)
+    ui = translations_for(locale)
     settings = state.settings_service.get()
     env_entries = state.env_service.list_entries()
+    panel_meta = state.panel_meta_service.get()
     server_address = request.headers.get("host") or f"localhost:{state.config.port}"
+
     return {
         "request": request,
         "app_name": state.config.app_name,
-        "page_title": page_title,
-        "page_kicker": page_kicker,
-        "page_heading": page_heading,
-        "page_description": page_description,
+        "page_title": translate(locale, PAGE_TITLES[active_page]),
         "active_page": active_page,
-        "navigation": NAVIGATION,
+        "navigation": _localized_navigation(locale),
         "settings": settings.model_dump(mode="json"),
+        "panel_meta": panel_meta.model_dump(mode="json"),
         "env_entries": [entry.model_dump(mode="json") for entry in env_entries],
         "workspace_path": str(state.config.workspace_dir),
         "auth_enabled": bool(state.config.ui_username and state.config.ui_password),
         "server_address": server_address,
         "support_links": SUPPORT_LINKS,
+        "locale": locale,
+        "ui": ui,
+        "runtime_version": f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+        "timezone": state.config.timezone,
     }
+
+
+def _render_page(request: Request, template_name: str, *, active_page: str) -> HTMLResponse:
+    return _services(request).templates.TemplateResponse(
+        request,
+        template_name,
+        _page_context(request, active_page=active_page),
+    )
 
 
 @router.get("/", response_class=HTMLResponse)
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page(request: Request) -> HTMLResponse:
-    state = _services(request)
-    return state.templates.TemplateResponse(
-        request,
-        "dashboard.html",
-        _page_context(
-            request,
-            active_page="dashboard",
-            page_title="Dashboard",
-            page_kicker="Server",
-            page_heading="Discord-Bot Übersicht",
-            page_description="Status, Verlauf und Schnellzugriffe in einer kompakten Ansicht.",
-        ),
-    )
-
-
-@router.get("/files", response_class=HTMLResponse)
-async def files_page(request: Request) -> HTMLResponse:
-    state = _services(request)
-    return state.templates.TemplateResponse(
-        request,
-        "files.html",
-        _page_context(
-            request,
-            active_page="files",
-            page_title="Dateien",
-            page_kicker="Management",
-            page_heading="Dateimanager",
-            page_description="Dateien hochladen, bearbeiten, packen und direkt im Browser verwalten.",
-        ),
-    )
+    return _render_page(request, "dashboard.html", active_page="dashboard")
 
 
 @router.get("/console", response_class=HTMLResponse)
 async def console_page(request: Request) -> HTMLResponse:
-    state = _services(request)
-    return state.templates.TemplateResponse(
-        request,
-        "console.html",
-        _page_context(
-            request,
-            active_page="console",
-            page_title="Konsole",
-            page_kicker="Server",
-            page_heading="Sichere Konsole",
-            page_description="Erlaubte Befehle im Workspace ausführen und Task-Ausgaben live verfolgen.",
-        ),
-    )
-
-
-@router.get("/startup", response_class=HTMLResponse)
-async def startup_page(request: Request) -> HTMLResponse:
-    state = _services(request)
-    return state.templates.TemplateResponse(
-        request,
-        "startup.html",
-        _page_context(
-            request,
-            active_page="startup",
-            page_title="Start & Pakete",
-            page_kicker="Konfiguration",
-            page_heading="Startup",
-            page_description="Startbefehl, virtuelle Umgebung und Paketinstallation für deinen Bot.",
-        ),
-    )
+    return _render_page(request, "console.html", active_page="console")
 
 
 @router.get("/settings", response_class=HTMLResponse)
 @router.get("/environment", response_class=HTMLResponse)
 async def settings_page(request: Request) -> HTMLResponse:
-    state = _services(request)
-    return state.templates.TemplateResponse(
-        request,
-        "settings.html",
-        _page_context(
-            request,
-            active_page="settings",
-            page_title="Einstellungen",
-            page_kicker="Server",
-            page_heading="Einstellungen",
-            page_description="Umgebungsvariablen und lokale Self-Hosting-Konfiguration an einem Ort.",
-        ),
-    )
+    return _render_page(request, "settings.html", active_page="settings")
 
 
 @router.get("/activity", response_class=HTMLResponse)
 @router.get("/logs", response_class=HTMLResponse)
 async def activity_page(request: Request) -> HTMLResponse:
-    state = _services(request)
-    return state.templates.TemplateResponse(
-        request,
-        "activity.html",
-        _page_context(
-            request,
-            active_page="activity",
-            page_title="Aktivität",
-            page_kicker="Server",
-            page_heading="Aktivität",
-            page_description="Bot-Logs, Systemereignisse und letzte Prozesswechsel in einem separaten Bereich.",
-        ),
-    )
+    return _render_page(request, "activity.html", active_page="activity")
+
+
+@router.get("/files", response_class=HTMLResponse)
+async def files_page(request: Request) -> HTMLResponse:
+    return _render_page(request, "files.html", active_page="files")
+
+
+@router.get("/databases", response_class=HTMLResponse)
+async def databases_page(request: Request) -> HTMLResponse:
+    return _render_page(request, "databases.html", active_page="databases")
+
+
+@router.get("/backups", response_class=HTMLResponse)
+async def backups_page(request: Request) -> HTMLResponse:
+    return _render_page(request, "backups.html", active_page="backups")
+
+
+@router.get("/network", response_class=HTMLResponse)
+async def network_page(request: Request) -> HTMLResponse:
+    return _render_page(request, "network.html", active_page="network")
+
+
+@router.get("/schedules", response_class=HTMLResponse)
+async def schedules_page(request: Request) -> HTMLResponse:
+    return _render_page(request, "schedules.html", active_page="schedules")
+
+
+@router.get("/users", response_class=HTMLResponse)
+async def users_page(request: Request) -> HTMLResponse:
+    return _render_page(request, "users.html", active_page="users")
+
+
+@router.get("/startup", response_class=HTMLResponse)
+async def startup_page(request: Request) -> HTMLResponse:
+    return _render_page(request, "startup.html", active_page="startup")
 
 
 @router.get("/health")
@@ -213,6 +216,24 @@ async def get_status(request: Request) -> JSONResponse:
 @router.get("/api/history")
 async def get_history(request: Request) -> JSONResponse:
     return JSONResponse({"items": await _services(request).bot_manager.history()})
+
+
+@router.get("/api/metrics")
+async def get_metrics(request: Request) -> JSONResponse:
+    return JSONResponse(_services(request).system_metrics_service.snapshot())
+
+
+@router.get("/api/panel-meta")
+async def get_panel_meta(request: Request) -> JSONResponse:
+    payload = _services(request).panel_meta_service.get().model_dump(mode="json")
+    return JSONResponse(payload)
+
+
+@router.put("/api/panel-meta")
+async def save_panel_meta(request: Request, payload: PanelMetaUpdateModel) -> JSONResponse:
+    panel_meta = _services(request).panel_meta_service.update(payload)
+    await _services(request).log_service.write("system", "Panel metadata updated.")
+    return JSONResponse(panel_meta.model_dump(mode="json"))
 
 
 @router.post("/api/bot/start")
@@ -321,6 +342,8 @@ async def delete_entries(request: Request, payload: DeleteEntriesRequest) -> JSO
     except Exception as exc:  # noqa: BLE001
         _raise_bad_request(exc)
     return JSONResponse({"ok": True})
+
+
 @router.post("/api/files/upload")
 async def upload_files(
     request: Request,
@@ -400,14 +423,80 @@ async def get_settings(request: Request) -> JSONResponse:
 @router.put("/api/settings")
 async def save_settings(request: Request, payload: BotSettingsModel) -> JSONResponse:
     settings = _services(request).settings_service.update(payload)
-    await _services(request).log_service.write("system", "Bot-Einstellungen wurden gespeichert.")
+    await _services(request).log_service.write("system", "Bot settings saved.")
     return JSONResponse(settings.model_dump(mode="json"))
+
+
+@router.get("/api/backups")
+async def list_backups(request: Request) -> JSONResponse:
+    return JSONResponse({"items": _services(request).backup_service.list_backups()})
+
+
+@router.post("/api/backups")
+async def create_backup(request: Request) -> JSONResponse:
+    try:
+        payload = _services(request).backup_service.create_backup()
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    await _services(request).log_service.write("system", f"Backup created: {payload['name']}")
+    return JSONResponse(payload)
+
+
+@router.get("/api/backups/{backup_name}/download")
+async def download_backup(request: Request, backup_name: str) -> FileResponse:
+    try:
+        file_path = _services(request).backup_service.resolve(backup_name)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return FileResponse(file_path, filename=file_path.name)
+
+
+@router.delete("/api/backups/{backup_name}")
+async def delete_backup(request: Request, backup_name: str) -> JSONResponse:
+    try:
+        _services(request).backup_service.delete_backup(backup_name)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    await _services(request).log_service.write("system", f"Backup deleted: {backup_name}")
+    return JSONResponse({"ok": True})
+
+
+@router.get("/api/schedules")
+async def list_schedules(request: Request) -> JSONResponse:
+    return JSONResponse({"items": _services(request).schedule_service.list_schedules()})
+
+
+@router.post("/api/schedules")
+async def save_schedule(request: Request, payload: SaveScheduleRequest) -> JSONResponse:
+    try:
+        schedule = _services(request).schedule_service.save_schedule(payload)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse(schedule)
+
+
+@router.post("/api/schedules/{schedule_id}/enabled")
+async def toggle_schedule(request: Request, schedule_id: str, enabled: bool) -> JSONResponse:
+    try:
+        schedule = _services(request).schedule_service.set_enabled(schedule_id, enabled)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse(schedule)
+
+
+@router.delete("/api/schedules/{schedule_id}")
+async def delete_schedule(request: Request, schedule_id: str) -> JSONResponse:
+    try:
+        _services(request).schedule_service.delete_schedule(schedule_id)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse({"ok": True})
 
 
 @router.get("/api/logs/{channel}/download")
 async def download_logs(request: Request, channel: str) -> FileResponse:
     if channel not in {"bot", "system"}:
-        raise HTTPException(status_code=404, detail="Unbekannter Log-Kanal.")
+        raise HTTPException(status_code=404, detail="Unknown log channel.")
     file_path = _services(request).log_service.file_for(channel)
     return FileResponse(file_path, filename=file_path.name)
 
@@ -424,6 +513,8 @@ async def get_task(request: Request, task_id: str) -> JSONResponse:
     except Exception as exc:  # noqa: BLE001
         _raise_bad_request(exc)
     return JSONResponse(payload)
+
+
 @router.post("/api/tasks/install-deps")
 async def install_dependencies(request: Request) -> JSONResponse:
     try:

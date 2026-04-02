@@ -21,6 +21,7 @@ class AppConfig:
     workspace_dir: Path
     config_dir: Path
     log_dir: Path
+    backup_dir: Path
     venv_dir: Path
     max_upload_mb: int
     ui_username: str | None
@@ -32,7 +33,7 @@ class AppConfig:
         return self.max_upload_mb * 1024 * 1024
 
     def ensure_directories(self) -> None:
-        for path in (self.workspace_dir, self.config_dir, self.log_dir, self.venv_dir):
+        for path in (self.workspace_dir, self.config_dir, self.log_dir, self.backup_dir, self.venv_dir):
             path.mkdir(parents=True, exist_ok=True)
 
 
@@ -41,6 +42,7 @@ def load_config() -> AppConfig:
     workspace_dir = _path_from_env("WORKSPACE_DIR", data_root / "workspace")
     config_dir = _path_from_env("CONFIG_DIR", data_root / "config")
     log_dir = _path_from_env("LOG_DIR", data_root / "logs")
+    backup_dir = _path_from_env("BACKUP_DIR", data_root / "backups")
     venv_dir = _path_from_env("VENV_DIR", data_root / "venv")
 
     return AppConfig(
@@ -50,6 +52,7 @@ def load_config() -> AppConfig:
         workspace_dir=workspace_dir,
         config_dir=config_dir,
         log_dir=log_dir,
+        backup_dir=backup_dir,
         venv_dir=venv_dir,
         max_upload_mb=int(os.getenv("MAX_UPLOAD_MB", "128")),
         ui_username=os.getenv("UI_USERNAME") or None,

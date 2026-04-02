@@ -1,30 +1,30 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block page_body %}
-<section class="activity-layout">
-    <article class="panel-surface log-card">
-        <div class="panel-header between">
+<section class="split-main activity-layout">
+    <article class="surface">
+        <div class="surface-header toolbar-spread">
             <div>
-                <p class="eyebrow">Live-Logs</p>
-                <h3>Bot- und Systemprotokolle</h3>
+                <p class="section-label">{{ ui["nav.activity"] }}</p>
+                <h1>{{ ui["activity.logs"] }}</h1>
             </div>
-            <div class="toolbar-actions compact-actions">
-                <button class="tab-button is-active" data-log-tab="bot" type="button">Bot-Logs</button>
-                <button class="tab-button" data-log-tab="system" type="button">System-Logs</button>
-                <a class="ghost-button" id="downloadLogsLink" href="/api/logs/bot/download">Download</a>
+            <div class="toolbar-actions">
+                <button class="btn btn-secondary is-active" data-log-tab="bot" type="button">{{ ui["activity.bot_logs"] }}</button>
+                <button class="btn btn-secondary" data-log-tab="system" type="button">{{ ui["activity.system_logs"] }}</button>
+                <a class="btn btn-secondary" id="downloadLogsLink" href="/api/logs/bot/download">{{ ui["activity.download"] }}</a>
             </div>
         </div>
-        <pre class="terminal-preview activity-terminal" id="logOutput">Warte auf Log-Ausgabe ...</pre>
+        <pre class="terminal-output activity-terminal" id="logOutput">{{ ui["activity.waiting"] }}</pre>
     </article>
 
-    <article class="panel-surface history-card">
-        <div class="panel-header">
+    <article class="surface side-surface">
+        <div class="surface-header">
             <div>
-                <p class="eyebrow">Verlauf</p>
-                <h3>Prozessereignisse</h3>
+                <p class="section-label">{{ ui["activity.heading"] }}</p>
+                <h2>{{ ui["activity.history"] }}</h2>
             </div>
         </div>
-        <div class="history-list history-list-side" id="historyList"></div>
+        <div class="list-stack" id="historyList"></div>
     </article>
 </section>
 {% endblock %}

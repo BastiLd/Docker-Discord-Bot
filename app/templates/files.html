@@ -1,77 +1,75 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block page_body %}
-<section class="panel-surface files-toolbar-card">
-    <div class="files-toolbar-top">
-        <div class="breadcrumbs" id="breadcrumbs"></div>
-        <label class="search-field search-field-files">
-            <span class="visually-hidden">Dateien durchsuchen</span>
-            <input id="fileSearchInput" type="search" placeholder="Suche im aktuellen Pfad">
-        </label>
-        <div class="toolbar-actions compact-actions">
-            <button class="danger-button" id="bulkDeleteBtn" type="button" disabled>Löschen</button>
-            <button class="secondary-button" id="bulkMoveBtn" type="button" disabled>Verschieben</button>
-            <button class="secondary-button" id="bulkCopyBtn" type="button" disabled>Kopieren</button>
-            <button class="secondary-button" id="bulkDownloadBtn" type="button" disabled>ZIP</button>
+<section class="surface file-browser-view" id="fileBrowserView">
+    <div class="surface-header toolbar-spread">
+        <div>
+            <p class="section-label">{{ ui["nav.files"] }}</p>
+            <h1>{{ ui["files.heading"] }}</h1>
+        </div>
+        <div class="toolbar-actions">
+            <button class="btn btn-danger" id="bulkDeleteBtn" type="button" disabled>{{ ui["files.delete"] }}</button>
+            <button class="btn btn-secondary" id="bulkMoveBtn" type="button" disabled>{{ ui["files.move"] }}</button>
+            <button class="btn btn-secondary" id="bulkCopyBtn" type="button" disabled>{{ ui["files.copy"] }}</button>
+            <button class="btn btn-secondary" id="bulkDownloadBtn" type="button" disabled>{{ ui["files.zip"] }}</button>
         </div>
     </div>
-    <div class="files-toolbar-bottom">
-        <div class="toolbar-actions compact-actions">
-            <button class="secondary-button" id="navigateUpBtn" type="button">Ebene hoch</button>
-            <button class="secondary-button" id="refreshFilesBtn" type="button">Neu laden</button>
-            <button class="secondary-button" id="newFolderBtn" type="button">Ordner</button>
-            <button class="secondary-button" id="newFileBtn" type="button">Datei</button>
-            <button class="primary-button" id="uploadFilesBtn" type="button">Upload</button>
-            <button class="primary-button" id="uploadArchiveBtn" type="button">ZIP-Upload</button>
-        </div>
-        <div class="dropzone compact-dropzone" id="dropzone">
-            <strong>Drag and drop</strong>
-            <span>Dateien oder ZIPs direkt in den Workspace ziehen</span>
-        </div>
+
+    <div class="files-toolbar-grid">
+        <div class="breadcrumbs" id="breadcrumbs"></div>
+        <label class="search-box">
+            <span class="visually-hidden">{{ ui["files.search"] }}</span>
+            <input id="fileSearchInput" type="search" placeholder="{{ ui['files.search'] }}">
+        </label>
+    </div>
+
+    <div class="toolbar-actions file-toolbar-actions">
+        <button class="btn btn-secondary" id="navigateUpBtn" type="button">{{ ui["files.up"] }}</button>
+        <button class="btn btn-secondary" id="refreshFilesBtn" type="button">{{ ui["files.refresh"] }}</button>
+        <button class="btn btn-secondary" id="newFolderBtn" type="button">{{ ui["files.new_folder"] }}</button>
+        <button class="btn btn-secondary" id="newFileBtn" type="button">{{ ui["files.new_file"] }}</button>
+        <button class="btn btn-primary" id="uploadFilesBtn" type="button">{{ ui["files.upload"] }}</button>
+        <button class="btn btn-primary" id="uploadArchiveBtn" type="button">{{ ui["files.upload_zip"] }}</button>
+    </div>
+
+    <div class="drop-hint" id="dropzone">
+        <strong>Drag and drop</strong>
+        <span>{{ workspace_path }}</span>
+    </div>
+
+    <div class="table-wrap">
+        <table class="data-table file-table">
+            <thead>
+                <tr>
+                    <th><input id="selectAllCheckbox" type="checkbox" aria-label="Select all"></th>
+                    <th>{{ ui["files.name"] }}</th>
+                    <th>{{ ui["files.type"] }}</th>
+                    <th>{{ ui["files.size"] }}</th>
+                    <th>{{ ui["files.modified"] }}</th>
+                    <th>{{ ui["files.actions"] }}</th>
+                </tr>
+            </thead>
+            <tbody id="fileTableBody"></tbody>
+        </table>
     </div>
 </section>
 
-<section class="files-layout">
-    <article class="panel-surface file-browser-card">
-        <div class="panel-header">
-            <div>
-                <p class="eyebrow">Dateimanager</p>
-                <h3>Projektdateien</h3>
-            </div>
+<section class="surface hidden file-editor-view" id="fileEditorView">
+    <div class="surface-header toolbar-spread">
+        <div>
+            <button class="btn btn-secondary back-button" id="fileEditorBackBtn" type="button">{{ ui["files.editor_back"] }}</button>
+            <p class="section-label" id="editorPath">/</p>
+            <h1 id="editorTitle">{{ ui["files.editor_empty"] }}</h1>
         </div>
-        <div class="table-shell">
-            <table class="file-table">
-                <thead>
-                    <tr>
-                        <th><input id="selectAllCheckbox" type="checkbox" aria-label="Alle Einträge auswählen"></th>
-                        <th>Name</th>
-                        <th>Typ</th>
-                        <th>Größe</th>
-                        <th>Geändert</th>
-                        <th>Aktionen</th>
-                    </tr>
-                </thead>
-                <tbody id="fileTableBody"></tbody>
-            </table>
+        <div class="toolbar-actions">
+            <span class="tag" id="editorLanguage">Text</span>
+            <span class="tag" id="editorDirtyBadge" data-dirty="false">{{ ui["files.editor_saved"] }}</span>
+            <button class="btn btn-secondary" id="reloadFileBtn" type="button" disabled>{{ ui["files.editor_reload"] }}</button>
+            <button class="btn btn-primary" id="saveFileBtn" type="button" disabled>{{ ui["files.editor_save"] }}</button>
         </div>
-    </article>
-
-    <article class="panel-surface editor-panel editor-panel-tight">
-        <div class="panel-header between">
-            <div>
-                <p class="eyebrow">Editor</p>
-                <h3 id="editorTitle">Keine Datei geöffnet</h3>
-            </div>
-            <div class="toolbar-actions compact-actions">
-                <span class="meta-pill" id="editorLanguage">Text</span>
-                <span class="meta-pill" id="editorDirtyBadge" data-dirty="false">Gespeichert</span>
-                <button class="secondary-button" id="reloadFileBtn" type="button" disabled>Neu laden</button>
-                <button class="primary-button" id="saveFileBtn" type="button" disabled>Speichern</button>
-            </div>
-        </div>
-        <textarea id="editorTextarea" class="editor-textarea" spellcheck="false" placeholder="Datei aus der Liste wählen, um sie hier zu bearbeiten."></textarea>
-        <p class="panel-footnote" id="editorMeta">Noch keine Datei geladen.</p>
-    </article>
+    </div>
+    <textarea id="editorTextarea" class="editor-textarea" spellcheck="false" placeholder="{{ ui['files.placeholder'] }}"></textarea>
+    <p class="surface-note" id="editorMeta">{{ ui["editor.none"] }}</p>
 </section>
 
 <input id="uploadFilesInput" type="file" multiple hidden>
