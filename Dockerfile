@@ -8,6 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     WORKSPACE_DIR=/data/workspace \
     CONFIG_DIR=/data/config \
     LOG_DIR=/data/logs \
+    BACKUP_DIR=/data/backups \
     VENV_DIR=/data/venv
 
 WORKDIR /app
@@ -17,7 +18,6 @@ RUN python -m pip install --upgrade pip && python -m pip install -r requirements
 
 COPY app ./app
 COPY scripts ./scripts
-COPY data ./data
 COPY README.md ./README.md
 
 EXPOSE 8080

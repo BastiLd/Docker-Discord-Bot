@@ -1,0 +1,96 @@
+name: homelab-discord-bot-manager
+
+services:
+  homelab-discord-bot-manager:
+    image: ghcr.io/replace-me/homelab-discord-bot-manager:0.1.0
+    container_name: homelab-discord-bot-manager
+    init: true
+    restart: unless-stopped
+    environment:
+      APP_PORT: "8080"
+      TZ: ${TZ:-Europe/Vienna}
+      MAX_UPLOAD_MB: "128"
+      UI_USERNAME: ""
+      UI_PASSWORD: ""
+      BACKUP_DIR: /data/backups
+      PUID: $PUID
+      PGID: $PGID
+    ports:
+      - target: 8080
+        published: ${WEBUI_PORT:-8080}
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /DATA/AppData/$AppID/workspace
+        target: /data/workspace
+      - type: bind
+        source: /DATA/AppData/$AppID/config
+        target: /data/config
+      - type: bind
+        source: /DATA/AppData/$AppID/logs
+        target: /data/logs
+      - type: bind
+        source: /DATA/AppData/$AppID/backups
+        target: /data/backups
+      - type: bind
+        source: /DATA/AppData/$AppID/venv
+        target: /data/venv
+    x-casaos:
+      envs:
+        - container: TZ
+          description:
+            en_US: System timezone used for displayed dates and scheduled tasks.
+        - container: MAX_UPLOAD_MB
+          description:
+            en_US: Maximum upload size in megabytes for workspace files and archives.
+        - container: UI_USERNAME
+          description:
+            en_US: Optional web UI username. Leave empty to disable built-in login.
+        - container: UI_PASSWORD
+          description:
+            en_US: Optional web UI password. Leave empty to disable built-in login.
+      ports:
+        - container: "8080"
+          description:
+            en_US: Web UI HTTP port.
+      volumes:
+        - container: /data/workspace
+          description:
+            en_US: Discord bot source code, requirements and environment files.
+        - container: /data/config
+          description:
+            en_US: Panel settings, schedules and runtime metadata.
+        - container: /data/logs
+          description:
+            en_US: Bot and system log files.
+        - container: /data/backups
+          description:
+            en_US: Backup archives created from the web UI.
+        - container: /data/venv
+          description:
+            en_US: Persistent Python virtual environment for bot dependencies.
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: homelab-discord-bot-manager
+  author: Bastian
+  category: Developer
+  developer: Homelab Discord Bot Manager
+  hostname: ""
+  icon: https://raw.githubusercontent.com/replace-me/homelab-discord-bot-manager/main/appstore/homelab-discord-bot-manager/icon.png
+  index: /
+  port_map: ${WEBUI_PORT:-8080}
+  scheme: http
+  store_app_id: homelab-discord-bot-manager
+  tagline:
+    en_US: Manage a self-hosted Discord bot from a compact web panel.
+  title:
+    en_US: Homelab Discord Bot Manager
+  description:
+    en_US: A Docker-friendly control panel for one Discord bot with file manager, safe console, logs, schedules and backups.
+  tips:
+    before_install:
+      en_US: |
+        Publish and reference your own versioned image before submitting this app upstream. The web UI is unauthenticated unless UI_USERNAME and UI_PASSWORD are set.

@@ -1,9 +1,9 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block page_body %}
-<section class="surface">
+<section class="surface table-card">
     <div class="surface-header toolbar-spread">
-        <div>
+        <div class="title-block">
             <p class="section-label">{{ ui["nav.schedules"] }}</p>
             <h1>{{ ui["schedules.heading"] }}</h1>
         </div>
@@ -40,7 +40,7 @@
                 <span>{{ ui["schedules.enabled"] }}</span>
             </label>
         </div>
-        <div class="toolbar-actions">
+        <div class="toolbar-actions card-actions-end">
             <button class="btn btn-primary" id="saveScheduleBtn" type="submit">{{ ui["schedules.save"] }}</button>
             <button class="btn btn-secondary" id="cancelScheduleBtn" type="button">{{ ui["schedules.cancel"] }}</button>
         </div>

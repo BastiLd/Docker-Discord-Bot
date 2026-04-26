@@ -1,12 +1,13 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block page_body %}
-<section class="split-main activity-layout">
-    <article class="surface">
-        <div class="surface-header toolbar-spread">
-            <div>
+<section class="activity-grid">
+    <article class="surface activity-log-card">
+        <div class="surface-header toolbar-spread activity-toolbar">
+            <div class="title-block">
                 <p class="section-label">{{ ui["nav.activity"] }}</p>
                 <h1>{{ ui["activity.logs"] }}</h1>
+                <p class="surface-note">{{ ui["activity.logs_hint"] }}</p>
             </div>
             <div class="toolbar-actions">
                 <button class="btn btn-secondary is-active" data-log-tab="bot" type="button">{{ ui["activity.bot_logs"] }}</button>
@@ -17,11 +18,12 @@
         <pre class="terminal-output activity-terminal" id="logOutput">{{ ui["activity.waiting"] }}</pre>
     </article>
 
-    <article class="surface side-surface">
+    <article class="surface side-surface activity-history-card">
         <div class="surface-header">
-            <div>
+            <div class="title-block">
                 <p class="section-label">{{ ui["activity.heading"] }}</p>
                 <h2>{{ ui["activity.history"] }}</h2>
+                <p class="surface-note">{{ ui["activity.history_hint"] }}</p>
             </div>
         </div>
         <div class="list-stack" id="historyList"></div>

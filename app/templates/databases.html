@@ -1,13 +1,28 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block page_body %}
-<section class="surface">
-    <div class="surface-header">
-        <div>
+<section class="surface table-card">
+    <div class="surface-header toolbar-spread">
+        <div class="title-block">
             <p class="section-label">{{ ui["nav.databases"] }}</p>
             <h1>{{ ui["databases.heading"] }}</h1>
         </div>
     </div>
-    <div class="empty-state static-empty">{{ ui["databases.empty"] }}</div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{{ ui["backups.name"] }}</th>
+                    <th>{{ ui["settings.server_name"] }}</th>
+                    <th>{{ ui["network.heading"] }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="3"><div class="empty-state">{{ ui["databases.empty"] }}</div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 </section>
 {% endblock %}

@@ -1,24 +1,38 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block page_body %}
-<section class="split-main settings-layout">
-    <article class="surface">
-        <div class="surface-header toolbar-spread">
-            <div>
-                <p class="section-label">{{ ui["nav.settings"] }}</p>
-                <h1>{{ ui["settings.panel"] }}</h1>
-                <p class="surface-note">{{ ui["settings.locale_notice"] }}</p>
-            </div>
-            <button class="btn btn-primary" id="savePanelBtn" type="button">{{ ui["settings.save"] }}</button>
+<section class="settings-grid">
+    <article class="kb-card">
+        <h1 class="card-title">SFTP Details</h1>
+        <div class="field-grid field-grid-single">
+            <label class="field">
+                <span>Server Address</span>
+                <input type="text" value="sftp://{{ server_address }}" readonly>
+            </label>
+            <label class="field">
+                <span>Username</span>
+                <input type="text" value="{{ panel_meta.server_id }}" readonly>
+            </label>
         </div>
-        <div class="field-grid">
+        <div class="settings-callout-row">
+            <div class="settings-callout">
+                <span class="settings-callout-line" aria-hidden="true"></span>
+                <p>Your SFTP password is the same as the password you use to access this panel.</p>
+            </div>
+            <a class="btn btn-secondary" href="sftp://{{ server_address }}">Launch SFTP</a>
+        </div>
+    </article>
+
+    <article class="kb-card">
+        <h2 class="card-title">Change Server Details</h2>
+        <div class="field-grid field-grid-single">
             <label class="field">
                 <span>{{ ui["settings.server_name"] }}</span>
                 <input id="panelNameInput" type="text" value="{{ panel_meta.display_name }}">
             </label>
-            <label class="field field-span-2">
+            <label class="field">
                 <span>{{ ui["settings.description"] }}</span>
-                <textarea id="panelDescriptionInput" rows="4">{{ panel_meta.description }}</textarea>
+                <textarea id="panelDescriptionInput" rows="6">{{ panel_meta.description }}</textarea>
             </label>
             <label class="field field-medium">
                 <span>{{ ui["settings.language"] }}</span>
@@ -28,37 +42,46 @@
                 </select>
             </label>
         </div>
+        <div class="card-actions card-actions-end">
+            <button class="btn btn-primary" id="savePanelBtn" type="button">{{ ui["settings.save"] }}</button>
+        </div>
     </article>
 
-    <article class="surface side-surface">
-        <div class="surface-header">
-            <div>
-                <p class="section-label">{{ ui["settings.heading"] }}</p>
-                <h2>{{ ui["settings.details"] }}</h2>
-            </div>
-        </div>
+    <article class="kb-card">
+        <h2 class="card-title">Debug Information</h2>
         <dl class="info-table compact-table">
             <div>
-                <dt>{{ ui["settings.address"] }}</dt>
-                <dd>{{ server_address }}</dd>
-            </div>
-            <div>
-                <dt>{{ ui["settings.workspace"] }}</dt>
-                <dd>{{ workspace_path }}</dd>
-            </div>
-            <div>
-                <dt>{{ ui["settings.timezone"] }}</dt>
-                <dd>{{ timezone }}</dd>
+                <dt>Node</dt>
+                <dd><span class="code-pill">GRA-N47 - Gratuit</span></dd>
             </div>
             <div>
                 <dt>{{ ui["settings.server_id"] }}</dt>
-                <dd>{{ panel_meta.server_id }}</dd>
+                <dd><span class="code-pill">{{ panel_meta.server_id }}</span></dd>
+            </div>
+            <div>
+                <dt>{{ ui["settings.timezone"] }}</dt>
+                <dd><span class="code-pill">{{ timezone }}</span></dd>
+            </div>
+            <div>
+                <dt>Runtime</dt>
+                <dd><span class="code-pill">{{ runtime_version }}</span></dd>
             </div>
             <div>
                 <dt>{{ ui["settings.status"] }}</dt>
-                <dd data-status-field="state_text">{{ ui["status.unknown"] }}</dd>
+                <dd><span class="code-pill" data-status-field="state_text">{{ ui["status.unknown"] }}</span></dd>
             </div>
         </dl>
+    </article>
+
+    <article class="kb-card settings-reinstall">
+        <h2 class="card-title">Reinstall Server</h2>
+        <p class="surface-note">
+            Reinstalling your server will stop it, and then re-run the installation script that initially set it up.
+            Some files may be deleted or modified during this process, please back up your data before continuing.
+        </p>
+        <div class="card-actions card-actions-end">
+            <button class="btn btn-outline-danger" type="button" disabled>Reinstall Server</button>
+        </div>
     </article>
 </section>
 {% endblock %}

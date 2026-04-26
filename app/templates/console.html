@@ -1,45 +1,77 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block page_body %}
 <section class="stats-grid">
-    <article class="surface metric-card">
-        <span class="metric-label">{{ ui["dashboard.cpu"] }}</span>
-        <strong class="metric-value" data-metric-field="cpu-primary">0%</strong>
-        <span class="metric-meta" data-metric-field="cpu-secondary">{{ ui["status.unknown"] }}</span>
+    <article class="kb-card metric-card">
+        <div class="metric-copy">
+            <span class="metric-label">{{ ui["dashboard.cpu"] }}</span>
+            <strong class="metric-value" data-metric-field="cpu-primary">0%</strong>
+            <span class="metric-meta" data-metric-field="cpu-secondary">{{ ui["status.unknown"] }}</span>
+        </div>
+        <span class="metric-tile metric-tile-cpu" aria-hidden="true"></span>
     </article>
-    <article class="surface metric-card">
-        <span class="metric-label">{{ ui["dashboard.memory"] }}</span>
-        <strong class="metric-value" data-metric-field="memory-primary">{{ ui["common.none"] }}</strong>
-        <span class="metric-meta" data-metric-field="memory-secondary"></span>
+    <article class="kb-card metric-card">
+        <div class="metric-copy">
+            <span class="metric-label">{{ ui["dashboard.memory"] }}</span>
+            <strong class="metric-value" data-metric-field="memory-primary">{{ ui["common.none"] }}</strong>
+            <span class="metric-meta" data-metric-field="memory-secondary"></span>
+        </div>
+        <span class="metric-tile metric-tile-memory" aria-hidden="true"></span>
     </article>
-    <article class="surface metric-card">
-        <span class="metric-label">{{ ui["dashboard.disk"] }}</span>
-        <strong class="metric-value" data-metric-field="disk-primary">{{ ui["common.none"] }}</strong>
-        <span class="metric-meta" data-metric-field="disk-secondary"></span>
+    <article class="kb-card metric-card">
+        <div class="metric-copy">
+            <span class="metric-label">{{ ui["dashboard.disk"] }}</span>
+            <strong class="metric-value" data-metric-field="disk-primary">{{ ui["common.none"] }}</strong>
+            <span class="metric-meta" data-metric-field="disk-secondary"></span>
+        </div>
+        <span class="metric-tile metric-tile-disk" aria-hidden="true"></span>
     </article>
 </section>
 
-<section class="surface">
-    <div class="surface-header">
-        <div>
-            <p class="section-label">{{ ui["nav.console"] }}</p>
-            <h1>{{ ui["console.heading"] }}</h1>
-        </div>
+<section class="kb-card console-shell">
+    <div class="console-logline">
+        <span class="console-prompt">container@katabump~</span>
+        <span class="console-logtext" data-status-field="console_message">{{ ui["console.status_unknown"] }}</span>
     </div>
-    <form class="console-command-bar" id="consoleForm">
-        <input id="consoleInput" type="text" placeholder="{{ ui['console.command_placeholder'] }}">
-        <button class="btn btn-primary" type="submit">{{ ui["console.run"] }}</button>
-    </form>
     <pre class="terminal-output console-terminal" id="taskOutput">{{ ui["console.empty"] }}</pre>
+    <form class="console-command-bar console-command-strip" id="consoleForm">
+        <span class="console-chevron" aria-hidden="true"></span>
+        <input id="consoleInput" type="text" placeholder="{{ ui['console.command_placeholder'] }}">
+        <div class="console-tools" aria-hidden="true">
+            <span class="console-tool console-tool-copy"></span>
+            <span class="console-tool console-tool-expand"></span>
+        </div>
+    </form>
 </section>
 
-<section class="surface">
-    <div class="surface-header">
-        <div>
-            <p class="section-label">{{ ui["startup.tasks"] }}</p>
-            <h2>{{ ui["console.tasks"] }}</h2>
+<section class="stats-grid console-bottom-grid">
+    <article class="kb-card metric-card metric-card-bottom">
+        <div class="metric-copy">
+            <span class="metric-label">{{ ui["dashboard.cpu"] }}</span>
+            <strong class="metric-value" data-metric-field="cpu-primary">0%</strong>
+            <span class="metric-meta" data-metric-field="cpu-secondary">{{ ui["status.unknown"] }}</span>
         </div>
-    </div>
+        <span class="metric-tile metric-tile-cpu" aria-hidden="true"></span>
+    </article>
+    <article class="kb-card metric-card metric-card-bottom">
+        <div class="metric-copy">
+            <span class="metric-label">{{ ui["dashboard.memory"] }}</span>
+            <strong class="metric-value" data-metric-field="memory-primary">{{ ui["common.none"] }}</strong>
+            <span class="metric-meta" data-metric-field="memory-secondary"></span>
+        </div>
+        <span class="metric-tile metric-tile-memory" aria-hidden="true"></span>
+    </article>
+    <article class="kb-card metric-card metric-card-bottom">
+        <div class="metric-copy">
+            <span class="metric-label">Inbound / Outbound</span>
+            <strong class="metric-value">Offline</strong>
+            <span class="metric-meta">Offline</span>
+        </div>
+        <span class="metric-tile metric-tile-network" aria-hidden="true"></span>
+    </article>
+</section>
+
+<section class="hidden">
     <div class="task-list task-list-wide" id="taskList"></div>
 </section>
 {% endblock %}

@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="{{ locale }}">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#11152e">
+    <meta name="theme-color" content="#080b31">
     <title>{{ page_title }} | {{ app_name }}</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
 </head>
@@ -13,7 +13,12 @@
         <aside class="sidebar-shell">
             <div class="sidebar-inner">
                 <a class="brand-link" href="/dashboard">
-                    <span class="brand-mark" aria-hidden="true"></span>
+                    <span class="brand-mark" aria-hidden="true">
+                        <span class="brand-mascot">
+                            <span class="brand-mascot-eye brand-mascot-eye-left"></span>
+                            <span class="brand-mascot-eye brand-mascot-eye-right"></span>
+                        </span>
+                    </span>
                     <span class="brand-name">{{ app_name }}</span>
                 </a>
 
@@ -26,9 +31,9 @@
                         </div>
                     </div>
                     <div class="server-actions">
-                        <button class="action-button action-start" type="button" data-bot-action="start" aria-label="Start"></button>
-                        <button class="action-button action-restart" type="button" data-bot-action="restart" aria-label="Restart"></button>
-                        <button class="action-button action-stop" type="button" data-bot-action="stop" aria-label="Stop"></button>
+                        <button class="action-button action-start" type="button" data-bot-action="start" aria-label="Start"><span class="action-glyph" aria-hidden="true"></span></button>
+                        <button class="action-button action-restart" type="button" data-bot-action="restart" aria-label="Restart"><span class="action-glyph" aria-hidden="true"></span></button>
+                        <button class="action-button action-stop" type="button" data-bot-action="stop" aria-label="Stop"><span class="action-glyph" aria-hidden="true"></span></button>
                     </div>
                     <dl class="server-stats">
                         <div>
@@ -66,22 +71,23 @@
                 <div class="sidebar-footer">
                     <a class="account-link" href="/settings">
                         <span class="account-mark" aria-hidden="true"></span>
-                        <div>
+                        <div class="account-copy">
                             <strong>{{ ui["layout.account"] }}</strong>
                             <span>{% if auth_enabled %}{{ ui["layout.auth_enabled"] }}{% else %}{{ ui["layout.auth_disabled"] }}{% endif %}</span>
                         </div>
+                        <span class="account-more" aria-hidden="true"></span>
                     </a>
-                    <p class="workspace-path" title="{{ workspace_path }}">{{ workspace_path }}</p>
+                    <p class="workspace-path" title="{{ workspace_path }}">/data/workspace</p>
                 </div>
             </div>
         </aside>
 
         <div class="main-shell">
             <header class="topbar">
-                <button class="quick-focus" id="quickFocusBtn" type="button" aria-label="{{ ui['layout.search'] }}"></button>
+                <button class="quick-focus" id="quickFocusBtn" type="button" aria-label="{{ ui['layout.search'] }}"><span class="quick-focus-icon" aria-hidden="true"></span></button>
                 <div class="topbar-links">
-                    <a href="{{ support_links.discord }}" target="_blank" rel="noreferrer">{{ ui["layout.discord"] }}</a>
-                    <a href="{{ support_links.support }}" target="_blank" rel="noreferrer">{{ ui["layout.support"] }}</a>
+                    <a class="topbar-link" href="{{ support_links.discord }}" target="_blank" rel="noreferrer">{{ ui["layout.discord"] }}</a>
+                    <a class="topbar-link is-support" href="{{ support_links.support }}" target="_blank" rel="noreferrer">{{ ui["layout.support"] }}</a>
                 </div>
             </header>
 
@@ -117,6 +123,46 @@
                     <button class="btn btn-primary" type="submit" id="modalConfirmBtn">Save</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <button class="mascot-help-button" id="mascotHelpBtn" type="button" aria-label="{{ ui['tour.open'] }}">
+        <span class="brand-mascot mascot-help-face" aria-hidden="true">
+            <span class="brand-mascot-eye brand-mascot-eye-left"></span>
+            <span class="brand-mascot-eye brand-mascot-eye-right"></span>
+        </span>
+        <span class="mascot-help-label">{{ ui["tour.help"] }}</span>
+    </button>
+
+    <div class="tour-shell hidden" id="tourShell" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+        <div class="tour-card surface">
+            <div class="tour-mascot" aria-hidden="true">
+                <div class="katabot katabot-tour">
+                    <span class="katabot-antenna"></span>
+                    <span class="katabot-ear katabot-ear-left"></span>
+                    <span class="katabot-ear katabot-ear-right"></span>
+                    <span class="katabot-head">
+                        <span class="katabot-eye katabot-eye-left"></span>
+                        <span class="katabot-eye katabot-eye-right"></span>
+                        <span class="katabot-smile"></span>
+                    </span>
+                    <span class="katabot-body">
+                        <span class="katabot-badge"></span>
+                    </span>
+                    <span class="katabot-arm katabot-arm-left"></span>
+                    <span class="katabot-arm katabot-arm-right"></span>
+                </div>
+            </div>
+            <div class="tour-copy">
+                <p class="section-label" id="tourEyebrow">{{ ui["tour.eyebrow"] }}</p>
+                <h2 id="tourTitle">{{ ui["tour.title"] }}</h2>
+                <p id="tourText">{{ ui["tour.step_dashboard"] }}</p>
+                <div class="tour-progress" id="tourProgress"></div>
+                <div class="toolbar-actions tour-actions">
+                    <button class="btn btn-secondary" id="tourSkipBtn" type="button">{{ ui["tour.skip"] }}</button>
+                    <button class="btn btn-primary" id="tourNextBtn" type="button">{{ ui["tour.next"] }}</button>
+                </div>
+            </div>
         </div>
     </div>
 

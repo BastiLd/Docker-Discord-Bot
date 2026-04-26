@@ -1,4 +1,4 @@
-﻿const initial = window.__INITIAL_STATE__ || {};
+const initial = window.__INITIAL_STATE__ || {};
 const page = document.body.dataset.page || initial.page || "dashboard";
 
 const state = {
@@ -29,11 +29,21 @@ const dateTimeFormatter = new Intl.DateTimeFormat(state.locale === "de" ? "de-AT
     dateStyle: "medium",
     timeStyle: "short",
 });
+const tourSteps = [
+    "tour.step_dashboard",
+    "tour.step_console",
+    "tour.step_files",
+    "tour.step_startup",
+    "tour.step_activity",
+];
+const tourStorageKey = "katabot.panelTour.seen.v2";
+let tourIndex = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
     collectBaseElements();
     localizeModalDefaults();
     bindModal();
+    bindTour();
     bindGlobalBotControls();
     initializePage();
     bindQuickFocus();
@@ -61,6 +71,12 @@ function collectBaseElements() {
         modalConfirmBtn: byId("modalConfirmBtn"),
         modalCancelBtn: byId("modalCancelBtn"),
         modalSecondaryBtn: byId("modalSecondaryBtn"),
+        mascotHelpBtn: byId("mascotHelpBtn"),
+        tourShell: byId("tourShell"),
+        tourText: byId("tourText"),
+        tourProgress: byId("tourProgress"),
+        tourNextBtn: byId("tourNextBtn"),
+        tourSkipBtn: byId("tourSkipBtn"),
         globalActionButtons: queryAll("[data-bot-action]"),
         serverNameLabels: queryAll(".server-name"),
         statusBadges: queryAll('[data-status-field="badge"]'),
@@ -69,6 +85,7 @@ function collectBaseElements() {
         statusUptimeTexts: queryAll('[data-status-field="uptime"]'),
         statusExitTexts: queryAll('[data-status-field="exit"]'),
         statusCommandTexts: queryAll('[data-status-field="command"]'),
+        statusConsoleMessages: queryAll('[data-status-field="console_message"]'),
         statusErrorTexts: queryAll('[data-status-field="error"]'),
         metricCpuPrimary: queryAll('[data-metric-field="cpu-primary"]'),
         metricCpuSecondary: queryAll('[data-metric-field="cpu-secondary"]'),
@@ -215,14 +232,15 @@ async function refreshStatus({ silent = false } = {}) {
 
 function renderStatus(payload) {
     const mapping = {
-        running: { text: tr("status.running"), className: "is-running" },
-        stopped: { text: tr("status.stopped"), className: "is-stopped" },
-        crashed: { text: tr("status.crashed"), className: "is-crashed" },
-        unknown: { text: tr("status.unknown"), className: "is-unknown" },
+        running: { text: tr("status.running"), className: "is-running", consoleKey: "console.status_running" },
+        stopped: { text: tr("status.stopped"), className: "is-stopped", consoleKey: "console.status_stopped" },
+        crashed: { text: tr("status.crashed"), className: "is-crashed", consoleKey: "console.status_crashed" },
+        unknown: { text: tr("status.unknown"), className: "is-unknown", consoleKey: "console.status_unknown" },
     };
     const current = mapping[payload.state] || mapping.unknown;
 
     setText(els.statusStateTexts, current.text);
+    setText(els.statusConsoleMessages, tr(current.consoleKey));
     setText(els.statusPidTexts, payload.pid ?? "-");
     setText(els.statusUptimeTexts, payload.uptime_human || tr("common.none"));
     setText(els.statusExitTexts, payload.last_exit_code ?? "-");
@@ -758,9 +776,11 @@ function renderFileTable() {
 
 function renderFileRow(entry) {
     const checked = state.selected.has(entry.path) ? "checked" : "";
-    const kindLabel = entry.kind === "directory" ? tr("files.new_folder") : entry.extension || tr("files.type");
+    const kindLabel = fileTypeLabel(entry);
     const primaryAction = entry.kind === "directory" ? "open" : entry.editable ? "edit" : "download";
     const primaryLabel = entry.kind === "directory" ? tr("files.open") : entry.editable ? tr("files.edit") : tr("files.download");
+    const fileIcon = iconForEntry(entry);
+
     const actionButtons = [
         `<button class="file-action-link" type="button" data-action="${primaryAction}" data-path="${escapeHtml(entry.path)}">${escapeHtml(primaryLabel)}</button>`,
         `<button class="file-action-link" type="button" data-action="rename" data-path="${escapeHtml(entry.path)}">${escapeHtml(tr("files.rename"))}</button>`,
@@ -772,13 +792,101 @@ function renderFileRow(entry) {
     return `
         <tr>
             <td><input type="checkbox" data-path="${escapeHtml(entry.path)}" ${checked}></td>
-            <td><button class="file-link" type="button" data-action="${primaryAction}" data-path="${escapeHtml(entry.path)}">${escapeHtml(entry.name)}</button></td>
+            <td>
+                <div class="file-name-cell">
+                    <span class="file-icon file-icon-emoji" title="${escapeHtml(fileIcon.label)}" aria-hidden="true">${fileIcon.symbol}</span>
+                    <button class="file-link" type="button" data-action="${primaryAction}" data-path="${escapeHtml(entry.path)}">${escapeHtml(entry.name)}</button>
+                </div>
+            </td>
             <td>${escapeHtml(kindLabel)}</td>
             <td>${escapeHtml(entry.size_human || "-")}</td>
             <td>${escapeHtml(formatUnixDate(entry.modified_at))}</td>
             <td><div class="file-actions">${actionButtons}</div></td>
         </tr>
     `;
+}
+
+function fileTypeLabel(entry) {
+    if (entry.kind === "directory") return tr("files.new_folder");
+    const name = (entry.name || "").toLowerCase();
+    if (name === ".env") return ".env";
+    if (name === "dockerfile") return "Dockerfile";
+    if (name.endsWith(".tar.gz")) return ".tar.gz";
+    if (name.endsWith(".tar.bz2")) return ".tar.bz2";
+    return entry.extension || tr("files.type");
+}
+
+function iconForEntry(entry) {
+    if (entry.kind === "directory") return { symbol: "📁", label: tr("files.new_folder") };
+
+    const name = (entry.name || "").toLowerCase();
+    const extension = (entry.extension || "").toLowerCase().replace(/^\./, "");
+    const fullExtension = name.endsWith(".tar.gz") ? "tar.gz" : name.endsWith(".tar.bz2") ? "tar.bz2" : extension;
+
+    if (name === ".env" || name.endsWith(".env") || name.includes(".env.")) return { symbol: "🔐", label: "Environment" };
+    if (name === "dockerfile" || name.startsWith("dockerfile.")) return { symbol: "🐳", label: "Dockerfile" };
+    if (name === "docker-compose.yml" || name === "docker-compose.yaml" || name === "compose.yml" || name === "compose.yaml") {
+        return { symbol: "🐳", label: "Docker Compose" };
+    }
+    if (name === "requirements.txt" || name === "pyproject.toml" || name === "package.json") return { symbol: "📦", label: "Dependencies" };
+    if (name.startsWith("readme") || name === "license" || name === "changelog") return { symbol: "📘", label: "Documentation" };
+
+    const iconMap = {
+        py: ["🐍", "Python"],
+        pyw: ["🐍", "Python"],
+        js: ["🟨", "JavaScript"],
+        mjs: ["🟨", "JavaScript"],
+        cjs: ["🟨", "JavaScript"],
+        ts: ["🔷", "TypeScript"],
+        tsx: ["🔷", "TypeScript React"],
+        jsx: ["⚛️", "React"],
+        html: ["🌐", "HTML"],
+        htm: ["🌐", "HTML"],
+        css: ["🎨", "CSS"],
+        scss: ["🎨", "SCSS"],
+        sass: ["🎨", "Sass"],
+        json: ["🔧", "JSON"],
+        yml: ["⚙️", "YAML"],
+        yaml: ["⚙️", "YAML"],
+        toml: ["⚙️", "TOML"],
+        ini: ["⚙️", "INI"],
+        cfg: ["⚙️", "Config"],
+        conf: ["⚙️", "Config"],
+        md: ["📘", "Markdown"],
+        markdown: ["📘", "Markdown"],
+        txt: ["📄", "Text"],
+        log: ["📜", "Log"],
+        csv: ["📊", "CSV"],
+        xls: ["📊", "Spreadsheet"],
+        xlsx: ["📊", "Spreadsheet"],
+        db: ["🗄️", "Database"],
+        sqlite: ["🗄️", "SQLite"],
+        sqlite3: ["🗄️", "SQLite"],
+        sql: ["🗄️", "SQL"],
+        zip: ["🗜️", "Archive"],
+        tar: ["🗜️", "Archive"],
+        gz: ["🗜️", "Archive"],
+        "tar.gz": ["🗜️", "Archive"],
+        "tar.bz2": ["🗜️", "Archive"],
+        rar: ["🗜️", "Archive"],
+        "7z": ["🗜️", "Archive"],
+        png: ["🖼️", "Image"],
+        jpg: ["🖼️", "Image"],
+        jpeg: ["🖼️", "Image"],
+        gif: ["🖼️", "Image"],
+        webp: ["🖼️", "Image"],
+        svg: ["🖼️", "SVG"],
+        pdf: ["📕", "PDF"],
+        mp3: ["🎵", "Audio"],
+        wav: ["🎵", "Audio"],
+        ogg: ["🎵", "Audio"],
+        mp4: ["🎬", "Video"],
+        mov: ["🎬", "Video"],
+        webm: ["🎬", "Video"],
+    };
+
+    const [symbol, label] = iconMap[fullExtension] || ["📄", extension ? extension.toUpperCase() : "File"];
+    return { symbol, label };
 }
 
 function handleFileTableClick(event) {
@@ -1395,6 +1503,72 @@ function bindHistoryAndLogs() {
     renderLogSurfaces();
 }
 
+function bindTour() {
+    if (!els.tourShell || !els.tourNextBtn || !els.tourSkipBtn) return;
+
+    els.mascotHelpBtn?.addEventListener("click", () => openTour({ force: true }));
+    els.tourNextBtn.addEventListener("click", () => {
+        if (tourIndex >= tourSteps.length - 1) {
+            closeTour({ remember: true });
+            return;
+        }
+        tourIndex += 1;
+        renderTourStep();
+    });
+    els.tourSkipBtn.addEventListener("click", () => closeTour({ remember: true }));
+    els.tourShell.addEventListener("click", (event) => {
+        if (event.target === els.tourShell) closeTour({ remember: true });
+    });
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !els.tourShell.classList.contains("hidden")) {
+            closeTour({ remember: true });
+        }
+    });
+
+    if (!hasSeenTour()) {
+        window.setTimeout(() => openTour(), 700);
+    }
+}
+
+function hasSeenTour() {
+    try {
+        return window.localStorage.getItem(tourStorageKey) === "1";
+    } catch {
+        return true;
+    }
+}
+
+function rememberTour() {
+    try {
+        window.localStorage.setItem(tourStorageKey, "1");
+    } catch {
+        // Ignore storage errors; the tour still works for this session.
+    }
+}
+
+function openTour({ force = false } = {}) {
+    if (!els.tourShell) return;
+    if (!force && hasSeenTour()) return;
+    tourIndex = 0;
+    renderTourStep();
+    els.tourShell.classList.remove("hidden");
+    window.setTimeout(() => els.tourNextBtn?.focus(), 0);
+}
+
+function closeTour({ remember = false } = {}) {
+    if (remember) rememberTour();
+    els.tourShell?.classList.add("hidden");
+}
+
+function renderTourStep() {
+    if (!els.tourText || !els.tourProgress || !els.tourNextBtn) return;
+    els.tourText.textContent = tr(tourSteps[tourIndex]);
+    els.tourNextBtn.textContent = tourIndex >= tourSteps.length - 1 ? tr("tour.finish") : tr("tour.next");
+    els.tourProgress.innerHTML = tourSteps
+        .map((_, index) => `<span class="${index === tourIndex ? "is-active" : ""}"></span>`)
+        .join("");
+}
+
 function switchLogTab(tab) {
     state.logTab = tab === "system" ? "system" : "bot";
     renderLogSurfaces();
@@ -1456,7 +1630,12 @@ async function refreshHistory({ silent = false } = {}) {
 function renderHistory(items) {
     if (!els.historyList) return;
     if (!items.length) {
-        els.historyList.innerHTML = `<div class="empty-state">${escapeHtml(tr("error.history_empty"))}</div>`;
+        els.historyList.innerHTML = `
+            <div class="empty-state activity-empty-state">
+                <strong>${escapeHtml(tr("activity.empty_history"))}</strong>
+                <span>${escapeHtml(tr("activity.history_hint"))}</span>
+            </div>
+        `;
         return;
     }
 
@@ -1464,11 +1643,11 @@ function renderHistory(items) {
         .map((item) => `
             <article class="history-item">
                 <div class="history-topline">
-                    <strong>${escapeHtml(renderProcessState(item.state))}</strong>
-                    <span>${escapeHtml(formatIsoDate(item.timestamp))}</span>
+                    <span class="history-state">${escapeHtml(renderProcessState(item.state))}</span>
+                    <time>${escapeHtml(formatIsoDate(item.timestamp))}</time>
                 </div>
                 <p>${escapeHtml(item.message || tr("common.none"))}</p>
-                <span class="history-meta">${escapeHtml(item.exit_code ?? "-")}</span>
+                <span class="history-meta">Exit ${escapeHtml(item.exit_code ?? "-")}</span>
             </article>
         `)
         .join("");

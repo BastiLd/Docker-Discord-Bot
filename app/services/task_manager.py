@@ -18,6 +18,7 @@ from app.services.log_service import LogService
 SAFE_TERMINAL_COMMANDS = {
     "python",
     "python3",
+    "py",
     "pip",
     "pip3",
     "pwd",
@@ -101,7 +102,7 @@ class TaskManager:
             str(self.config.venv_dir),
             "install-deps",
         ]
-        return await self._start_task("dependencies", "Abhängigkeiten installieren", command, self.config.workspace_dir)
+        return await self._start_task("dependencies", "Abhaengigkeiten installieren", command, self.config.workspace_dir)
 
     async def start_install_package(self, package_name: str) -> dict:
         command = [

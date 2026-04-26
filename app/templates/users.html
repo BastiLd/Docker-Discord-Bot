@@ -1,13 +1,30 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block page_body %}
-<section class="surface">
+<section class="surface table-card">
     <div class="surface-header toolbar-spread">
-        <div>
+        <div class="title-block">
             <p class="section-label">{{ ui["nav.users"] }}</p>
             <h1>{{ ui["users.heading"] }}</h1>
         </div>
+        <button class="btn btn-primary" type="button">{{ ui["users.create"] }}</button>
     </div>
-    <div class="empty-state static-empty">{{ ui["users.empty"] }}</div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{{ ui["users.name"] }}</th>
+                    <th>{{ ui["users.email"] }}</th>
+                    <th>{{ ui["users.2fa"] }}</th>
+                    <th>{{ ui["users.created"] }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="4"><div class="empty-state">{{ ui["users.empty"] }}</div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 </section>
 {% endblock %}

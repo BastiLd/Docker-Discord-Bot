@@ -1,9 +1,11 @@
 ﻿__pycache__/
 *.py[cod]
 *.log
+.uvicorn*.log
 .venv/
 .git/
 .gitignore
 node_modules/
+output/
 data/logs/*.log
 data/venv/

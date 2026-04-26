@@ -1,60 +1,61 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block page_body %}
-<section class="surface file-browser-view" id="fileBrowserView">
-    <div class="surface-header toolbar-spread">
-        <div>
-            <p class="section-label">{{ ui["nav.files"] }}</p>
-            <h1>{{ ui["files.heading"] }}</h1>
+<section class="file-browser-view" id="fileBrowserView">
+    <article class="kb-card files-toolbar-card">
+        <div class="files-toolbar-grid">
+            <div class="file-path-row">
+                <label class="toolbar-checkbox">
+                    <input id="selectAllCheckbox" type="checkbox" aria-label="Select all">
+                    <span></span>
+                </label>
+                <div class="breadcrumbs" id="breadcrumbs"></div>
+            </div>
+
+            <div class="files-toolbar-actions">
+                <label class="search-box search-box-wide">
+                    <span class="visually-hidden">{{ ui["files.search"] }}</span>
+                    <input id="fileSearchInput" type="search" placeholder="{{ ui['files.search'] }}">
+                </label>
+                <button class="btn btn-icon btn-danger-soft" id="bulkDeleteBtn" type="button" disabled aria-label="{{ ui['files.delete'] }}"><span class="visually-hidden">{{ ui["files.delete"] }}</span></button>
+                <button class="btn btn-icon btn-secondary" id="bulkDownloadBtn" type="button" disabled aria-label="{{ ui['files.bulk_download'] }}"><span class="visually-hidden">{{ ui["files.bulk_download"] }}</span></button>
+                <button class="btn btn-icon btn-secondary" id="bulkMoveBtn" type="button" disabled aria-label="{{ ui['files.move'] }}"><span class="visually-hidden">{{ ui["files.move"] }}</span></button>
+                <button class="btn btn-icon btn-secondary" id="bulkCopyBtn" type="button" disabled aria-label="{{ ui['files.copy'] }}"><span class="visually-hidden">{{ ui["files.copy"] }}</span></button>
+                <button class="btn btn-icon btn-secondary" id="navigateUpBtn" type="button" aria-label="{{ ui['files.up'] }}"><span class="visually-hidden">{{ ui["files.up"] }}</span></button>
+                <button class="btn btn-icon btn-secondary" id="refreshFilesBtn" type="button" aria-label="{{ ui['files.refresh'] }}"><span class="visually-hidden">{{ ui["files.refresh"] }}</span></button>
+                <button class="btn btn-secondary" id="newFolderBtn" type="button">{{ ui["files.new_folder"] }}</button>
+                <button class="btn btn-secondary" id="newFileBtn" type="button">{{ ui["files.new_file"] }}</button>
+                <button class="btn btn-icon btn-primary" id="uploadFilesBtn" type="button" aria-label="{{ ui['files.upload'] }}"><span class="visually-hidden">{{ ui["files.upload"] }}</span></button>
+                <button class="btn btn-icon btn-primary" id="uploadArchiveBtn" type="button" aria-label="{{ ui['files.upload_zip'] }}"><span class="visually-hidden">{{ ui["files.upload_zip"] }}</span></button>
+            </div>
         </div>
-        <div class="toolbar-actions">
-            <button class="btn btn-danger" id="bulkDeleteBtn" type="button" disabled>{{ ui["files.delete"] }}</button>
-            <button class="btn btn-secondary" id="bulkMoveBtn" type="button" disabled>{{ ui["files.move"] }}</button>
-            <button class="btn btn-secondary" id="bulkCopyBtn" type="button" disabled>{{ ui["files.copy"] }}</button>
-            <button class="btn btn-secondary" id="bulkDownloadBtn" type="button" disabled>{{ ui["files.zip"] }}</button>
+
+        <div class="drop-hint" id="dropzone">
+            <strong>Drag and drop</strong>
+            <span>{{ workspace_path }}</span>
         </div>
-    </div>
+    </article>
 
-    <div class="files-toolbar-grid">
-        <div class="breadcrumbs" id="breadcrumbs"></div>
-        <label class="search-box">
-            <span class="visually-hidden">{{ ui["files.search"] }}</span>
-            <input id="fileSearchInput" type="search" placeholder="{{ ui['files.search'] }}">
-        </label>
-    </div>
-
-    <div class="toolbar-actions file-toolbar-actions">
-        <button class="btn btn-secondary" id="navigateUpBtn" type="button">{{ ui["files.up"] }}</button>
-        <button class="btn btn-secondary" id="refreshFilesBtn" type="button">{{ ui["files.refresh"] }}</button>
-        <button class="btn btn-secondary" id="newFolderBtn" type="button">{{ ui["files.new_folder"] }}</button>
-        <button class="btn btn-secondary" id="newFileBtn" type="button">{{ ui["files.new_file"] }}</button>
-        <button class="btn btn-primary" id="uploadFilesBtn" type="button">{{ ui["files.upload"] }}</button>
-        <button class="btn btn-primary" id="uploadArchiveBtn" type="button">{{ ui["files.upload_zip"] }}</button>
-    </div>
-
-    <div class="drop-hint" id="dropzone">
-        <strong>Drag and drop</strong>
-        <span>{{ workspace_path }}</span>
-    </div>
-
-    <div class="table-wrap">
-        <table class="data-table file-table">
-            <thead>
-                <tr>
-                    <th><input id="selectAllCheckbox" type="checkbox" aria-label="Select all"></th>
-                    <th>{{ ui["files.name"] }}</th>
-                    <th>{{ ui["files.type"] }}</th>
-                    <th>{{ ui["files.size"] }}</th>
-                    <th>{{ ui["files.modified"] }}</th>
-                    <th>{{ ui["files.actions"] }}</th>
-                </tr>
-            </thead>
-            <tbody id="fileTableBody"></tbody>
-        </table>
-    </div>
+    <article class="kb-card">
+        <div class="table-wrap">
+            <table class="data-table file-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>{{ ui["files.name"] }}</th>
+                        <th>{{ ui["files.type"] }}</th>
+                        <th>{{ ui["files.size"] }}</th>
+                        <th>{{ ui["files.modified"] }}</th>
+                        <th>{{ ui["files.actions"] }}</th>
+                    </tr>
+                </thead>
+                <tbody id="fileTableBody"></tbody>
+            </table>
+        </div>
+    </article>
 </section>
 
-<section class="surface hidden file-editor-view" id="fileEditorView">
+<section class="kb-card hidden file-editor-view" id="fileEditorView">
     <div class="surface-header toolbar-spread">
         <div>
             <button class="btn btn-secondary back-button" id="fileEditorBackBtn" type="button">{{ ui["files.editor_back"] }}</button>

@@ -54,6 +54,8 @@
 │   ├── __init__.py
 │   └── main.py
 ├── data
+│   ├── backups
+│   │   └── .gitkeep
 │   ├── config
 │   │   └── settings.json
 │   ├── logs
@@ -111,6 +113,17 @@
 
 ## Deployment auf ZimaOS / Docker Compose
 
+Kurzfassung fuer ZimaOS:
+
+```bash
+git clone <dein-repo> homelab-discord-bot-manager
+cd homelab-discord-bot-manager
+cp .env.example .env
+docker compose up -d --build
+```
+
+Danach oeffnest du `http://<zimaos-ip>:8080`.
+
 ### 1. Projekt bereitstellen
 
 Repository oder Dateisatz auf dem Host ablegen, z. B. in einem App- oder Docker-Ordner auf dem NAS.
@@ -128,20 +141,30 @@ APP_PORT=8080
 TZ=Europe/Vienna
 PUID=1000
 PGID=1000
+MAX_UPLOAD_MB=128
 UI_USERNAME=
 UI_PASSWORD=
+BACKUP_DIR=/data/backups
 ```
 
 Hinweise:
 
 - `APP_PORT` ist der Web-Port deiner lokalen UI.
 - `PUID` und `PGID` sollten zu deinem NAS-/ZimaOS-User passen, damit Volumes sauber beschreibbar sind.
+- `BACKUP_DIR=/data/backups` sorgt dafuer, dass UI-Backups im Compose-Volume `./data/backups` landen.
 - Wenn `UI_USERNAME` und `UI_PASSWORD` leer bleiben, ist die UI ohne Login erreichbar. Dann nur lokal oder hinter VPN/Reverse Proxy nutzen.
 
 ### 3. Container starten
 
 ```bash
 docker compose up -d --build
+```
+
+Status pruefen:
+
+```bash
+docker compose ps
+docker compose logs --tail=80
 ```
 
 ### 4. Weboberflaeche oeffnen
@@ -161,6 +184,21 @@ http://<dein-server>:8080
 5. Auf **Install dependencies** klicken.
 6. Danach **Start** klicken.
 7. Logs kontrollieren.
+
+## Vorbereitung fuer den ZimaOS / CasaOS App Store
+
+Unter `appstore/homelab-discord-bot-manager/` liegt eine Compose-Vorlage im CasaOS/ZimaOS-AppStore-Stil mit `name`, `WEBUI_PORT`, `/DATA/AppData/$AppID/...`-Volumes, `icon.png`, Screenshot-Platz und `x-casaos`-Metadaten.
+
+Vor einer offiziellen Einreichung musst du:
+
+- ein versioniertes Image veroeffentlichen, z. B. `ghcr.io/<user>/homelab-discord-bot-manager:0.1.0`
+- den Platzhalter `ghcr.io/replace-me/...` in der Store-Compose-Datei ersetzen
+- `icon.png` pruefen und `screenshot-1.png` aus einer echten ZimaOS/CasaOS-Testinstallation aktualisieren
+- die App auf deiner eigenen ZimaOS/CasaOS-Instanz testen
+- danach einen Pull Request im IceWhale `CasaOS-AppStore` Repository erstellen
+
+Wichtig: Der offizielle Store akzeptiert keine lokale `build:`-Compose-Datei. Fuer den Store muss ein fest getaggtes, veroeffentlichtes Docker-Image verwendet werden.
+Die aktuelle IceWhale-Anleitung verlangt ausserdem mindestens `docker-compose.yml`, `icon.png` und `screenshot-1.png`; der PR muss vorab auf einer eigenen CasaOS/ZimaOS-Instanz getestet sein.
 
 ## Typische Nutzung
 
@@ -195,6 +233,7 @@ Fuer Backups reichen in der Regel diese Verzeichnisse:
 
 - `data/workspace`
 - `data/config`
+- `data/backups`
 - `data/logs`
 - `data/venv` (optional, spart Neuinstallation der Bot-Pakete)
 
