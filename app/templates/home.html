@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block page_body %}
+<section class="home-hero surface">
+    <div class="home-hero-copy">
+        <p class="section-label">{{ ui["home.eyebrow"] }}</p>
+        <h1>{{ ui["home.heading"] }}</h1>
+        <p class="hero-description">{{ ui["home.intro"] }}</p>
+    </div>
+    <form class="home-create-card" id="createServerForm">
+        <label class="field">
+            <span>{{ ui["home.server_name"] }}</span>
+            <input id="serverNameInput" type="text" maxlength="80" value="Discord-Bot">
+        </label>
+        <label class="field">
+            <span>{{ ui["home.description"] }}</span>
+            <input id="serverDescriptionInput" type="text" maxlength="280" placeholder="{{ ui['home.description_placeholder'] }}">
+        </label>
+        <button class="btn btn-primary" type="submit">{{ ui["home.create"] }}</button>
+    </form>
+</section>
+
+<section class="server-grid-home" aria-label="{{ ui['home.servers'] }}">
+    {% for server in servers %}
+    <a class="server-card-home surface {% if server.server_id == active_server_id %}is-active{% endif %}" href="/servers/{{ server.server_id }}">
+        <span class="server-card-mark" aria-hidden="true"></span>
+        <span class="server-card-copy">
+            <strong>{{ server.display_name }}</strong>
+            <span>{{ server.description or ui["home.workspace_hint"] }}</span>
+            <small>{{ "/data/workspace" if server.server_id == "default" else "/data/servers/" ~ server.server_id ~ "/workspace" }}</small>
+        </span>
+        {% if server.server_id == active_server_id %}
+        <span class="status-pill is-stopped">{{ ui["home.active"] }}</span>
+        {% else %}
+        <span class="btn btn-secondary">{{ ui["home.open"] }}</span>
+        {% endif %}
+    </a>
+    {% endfor %}
+</section>
+{% endblock %}

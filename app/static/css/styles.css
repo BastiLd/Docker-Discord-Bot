@@ -763,6 +763,80 @@ button {
     margin-top: 4px;
 }
 
+.home-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
+    gap: 22px;
+    align-items: end;
+}
+
+.home-hero-copy {
+    display: grid;
+    gap: 14px;
+}
+
+.home-hero-copy h1 {
+    font-size: clamp(2.2rem, 5vw, 4.1rem);
+    line-height: 0.98;
+    letter-spacing: 0;
+}
+
+.home-create-card {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+    border-radius: var(--radius-card);
+    background: rgba(48, 51, 82, 0.78);
+}
+
+.server-grid-home {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+    gap: 18px;
+}
+
+.server-card-home {
+    min-height: 152px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    color: var(--text);
+    text-decoration: none;
+    border: 1px solid transparent;
+}
+
+.server-card-home:hover,
+.server-card-home.is-active {
+    border-color: rgba(255, 95, 38, 0.48);
+    background: linear-gradient(90deg, rgba(154, 36, 50, 0.45), rgba(37, 37, 76, 0.92));
+}
+
+.server-card-mark {
+    width: 42px;
+    height: 42px;
+    border-radius: 9px;
+    background: linear-gradient(180deg, rgba(255, 95, 38, 0.96), rgba(163, 57, 65, 0.76));
+}
+
+.server-card-copy {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.server-card-copy strong {
+    font-size: 1.05rem;
+}
+
+.server-card-copy span,
+.server-card-copy small {
+    overflow: hidden;
+    color: var(--text-soft);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .mascot-stage {
     position: relative;
     min-height: 230px;
@@ -2278,6 +2352,10 @@ body[data-page="console"] .mascot-help-button {
         grid-template-columns: 1fr;
     }
 
+    .home-hero {
+        grid-template-columns: 1fr;
+    }
+
     .mascot-stage {
         min-height: 180px;
     }
@@ -2424,6 +2502,16 @@ body[data-page="console"] .mascot-help-button {
 
     .files-toolbar-actions .btn {
         flex: 1 1 46px;
+    }
+
+    .server-card-home {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .server-card-home > .btn,
+    .server-card-home > .status-pill {
+        grid-column: 1 / -1;
+        justify-self: start;
     }
 
     .activity-terminal {

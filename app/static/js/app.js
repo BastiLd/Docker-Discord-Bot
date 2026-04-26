@@ -7,6 +7,8 @@ const state = {
     translations: initial.translations || {},
     settings: initial.settings || {},
     panelMeta: initial.panelMeta || {},
+    servers: initial.servers || [],
+    activeServerId: initial.activeServerId || "default",
     envEntries: initial.envEntries || [],
     currentPath: "",
     entries: [],
@@ -109,6 +111,7 @@ function initializePage() {
     }
 
     if (page === "files") bindFilesPage();
+    if (page === "home") bindHomePage();
     if (page === "console") bindConsolePage();
     if (page === "startup") bindStartupPage();
     if (page === "settings") bindSettingsPage();
@@ -124,6 +127,7 @@ function bindQuickFocus() {
 }
 
 function getQuickFocusTarget() {
+    if (page === "home") return byId("serverNameInput");
     if (page === "files") return state.currentFile ? byId("editorTextarea") : byId("fileSearchInput");
     if (page === "console") return byId("consoleInput");
     if (page === "startup") return byId("startCommandInput") || byId("packageInput");
@@ -132,6 +136,38 @@ function getQuickFocusTarget() {
     if (page === "backups") return byId("createBackupBtn");
     if (page === "schedules") return byId("scheduleNameInput") || byId("newScheduleBtn");
     return null;
+}
+
+function bindHomePage() {
+    Object.assign(els, {
+        createServerForm: byId("createServerForm"),
+        serverNameInput: byId("serverNameInput"),
+        serverDescriptionInput: byId("serverDescriptionInput"),
+    });
+
+    els.createServerForm?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const displayName = (els.serverNameInput?.value || "").trim();
+        if (!displayName) {
+            showToastKey("home.name_required", {}, "error");
+            els.serverNameInput?.focus();
+            return;
+        }
+
+        try {
+            await api("/api/servers", {
+                method: "POST",
+                body: JSON.stringify({
+                    display_name: displayName,
+                    description: (els.serverDescriptionInput?.value || "").trim(),
+                }),
+            });
+            showToastKey("toast.server_created");
+            window.location.href = "/dashboard";
+        } catch (error) {
+            showToast(error.message, "error");
+        }
+    });
 }
 
 function byId(id) {
@@ -437,6 +473,8 @@ function bindStartupPage() {
         autoRestartInput: byId("autoRestartInput"),
         useVenvInput: byId("useVenvInput"),
         restartDelayInput: byId("restartDelayInput"),
+        pythonRuntimeInput: byId("pythonRuntimeInput"),
+        refreshStartupBtn: byId("refreshStartupBtn"),
         saveSettingsBtn: byId("saveSettingsBtn"),
         installDepsBtn: byId("installDepsBtn"),
         packageInput: byId("packageInput"),
@@ -448,6 +486,7 @@ function bindStartupPage() {
     bindTaskPage({ withConsoleForm: false });
 
     els.saveSettingsBtn?.addEventListener("click", saveSettings);
+    els.refreshStartupBtn?.addEventListener("click", refreshStartupPage);
     els.installDepsBtn?.addEventListener("click", () => startTask("/api/tasks/install-deps", {}));
     els.installPackageBtn?.addEventListener("click", () => {
         const packageName = els.packageInput?.value.trim() || "";
@@ -466,6 +505,7 @@ function applySettingsToForm() {
     if (els.autoRestartInput) els.autoRestartInput.checked = Boolean(state.settings.auto_restart);
     if (els.useVenvInput) els.useVenvInput.checked = state.settings.use_virtualenv !== false;
     if (els.restartDelayInput) els.restartDelayInput.value = String(state.settings.restart_delay_seconds || 5);
+    if (els.pythonRuntimeInput) els.pythonRuntimeInput.value = state.settings.python_runtime || "3.14";
 }
 
 async function saveSettings() {
@@ -475,6 +515,7 @@ async function saveSettings() {
             auto_restart: Boolean(els.autoRestartInput?.checked),
             use_virtualenv: Boolean(els.useVenvInput?.checked),
             restart_delay_seconds: Number(els.restartDelayInput?.value || 5),
+            python_runtime: els.pythonRuntimeInput?.value || state.settings.python_runtime || "3.14",
         };
         state.settings = await api("/api/settings", {
             method: "PUT",
@@ -570,6 +611,26 @@ async function saveEnvEntries() {
         state.envEntries = payload.entries || [];
         renderEnvList();
         showToastKey("toast.env_saved");
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+async function refreshStartupPage() {
+    try {
+        const [settings, envPayload, taskPayload] = await Promise.all([
+            api("/api/settings"),
+            api("/api/env"),
+            api("/api/tasks"),
+        ]);
+        state.settings = settings;
+        state.envEntries = envPayload.entries || [];
+        state.tasks = taskPayload.items || [];
+        applySettingsToForm();
+        renderEnvList();
+        renderTasks();
+        await Promise.all([refreshStatus({ silent: true }), refreshMetrics({ silent: true })]);
+        showToastKey("toast.startup_refreshed");
     } catch (error) {
         showToast(error.message, "error");
     }

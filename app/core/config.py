@@ -1,7 +1,7 @@
 ﻿from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 
@@ -18,6 +18,7 @@ class AppConfig:
     app_name: str
     host: str
     port: int
+    data_root: Path
     workspace_dir: Path
     config_dir: Path
     log_dir: Path
@@ -36,6 +37,20 @@ class AppConfig:
         for path in (self.workspace_dir, self.config_dir, self.log_dir, self.backup_dir, self.venv_dir):
             path.mkdir(parents=True, exist_ok=True)
 
+    def for_server(self, server_id: str) -> "AppConfig":
+        if server_id == "default":
+            return self
+
+        server_root = self.data_root / "servers" / server_id
+        return replace(
+            self,
+            workspace_dir=server_root / "workspace",
+            config_dir=server_root / "config",
+            log_dir=server_root / "logs",
+            backup_dir=server_root / "backups",
+            venv_dir=server_root / "venv",
+        )
+
 
 def load_config() -> AppConfig:
     data_root = _path_from_env("DATA_ROOT", BASE_DIR / "data")
@@ -49,6 +64,7 @@ def load_config() -> AppConfig:
         app_name=os.getenv("APP_NAME", "Homelab Discord Bot Manager"),
         host=os.getenv("APP_HOST", "0.0.0.0"),
         port=int(os.getenv("APP_PORT", "8080")),
+        data_root=data_root,
         workspace_dir=workspace_dir,
         config_dir=config_dir,
         log_dir=log_dir,

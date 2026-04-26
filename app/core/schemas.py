@@ -14,6 +14,12 @@ class BotSettingsModel(BaseModel):
     auto_restart: bool = True
     restart_delay_seconds: int = Field(default=5, ge=1, le=300)
     use_virtualenv: bool = True
+    python_runtime: str = Field(default="3.14", pattern=r"^3\.(12|13|14)$")
+
+
+class CreateServerRequest(BaseModel):
+    display_name: str = Field(default="Discord-Bot", min_length=1, max_length=80)
+    description: str = Field(default="", max_length=280)
 
 
 class PanelMetaModel(BaseModel):

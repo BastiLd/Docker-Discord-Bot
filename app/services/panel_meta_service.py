@@ -27,6 +27,11 @@ class PanelMetaService:
         self._save()
         return self.get()
 
+    def replace(self, payload: PanelMetaModel) -> PanelMetaModel:
+        self._meta = payload
+        self._save()
+        return self.get()
+
     def _load(self) -> PanelMetaModel:
         default_meta = PanelMetaModel(display_name=self.default_display_name, server_id=new_server_id())
         if not self.meta_path.exists():

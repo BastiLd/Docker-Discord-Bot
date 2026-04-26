@@ -36,13 +36,14 @@
                 <p class="section-label">{{ ui["startup.runtime"] }}</p>
                 <h2>{{ ui["startup.runtime"] }}</h2>
             </div>
+            <button class="btn btn-secondary" id="refreshStartupBtn" type="button">{{ ui["startup.refresh"] }}</button>
         </div>
         <label class="field">
             <span>{{ ui["startup.docker_image"] }}</span>
-            <select id="dockerImageInput" disabled>
-                <option>Python 3.14</option>
-                <option>Python 3.13</option>
-                <option>Python 3.12</option>
+            <select id="pythonRuntimeInput">
+                <option value="3.14">Python 3.14</option>
+                <option value="3.13">Python 3.13</option>
+                <option value="3.12">Python 3.12</option>
             </select>
         </label>
         <p class="surface-note">{{ ui["startup.runtime_help"] }}</p>
@@ -69,7 +70,7 @@
     <div class="field-grid section-stack">
         <label class="field">
             <span>{{ ui["startup.python_version"] }}</span>
-            <input value="{{ runtime_version }}" disabled>
+            <input value="Python {{ settings.python_runtime }}" disabled>
         </label>
         <label class="field">
             <span>{{ ui["startup.venv_path"] }}</span>

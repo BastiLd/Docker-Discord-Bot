@@ -5,13 +5,14 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from starlette.background import BackgroundTask
 
 from app.core.i18n import LOCALE_COOKIE, locale_cookie_value, translate, translations_for
 from app.core.schemas import (
     BotSettingsModel,
     ConsoleCommandRequest,
+    CreateServerRequest,
     CreateEntryRequest,
     DeleteEntriesRequest,
     DownloadSelectionRequest,
@@ -27,6 +28,7 @@ from app.core.schemas import (
 
 
 router = APIRouter()
+ACTIVE_SERVER_COOKIE = "active_server_id"
 
 
 NAVIGATION: list[dict[str, Any]] = [
@@ -66,6 +68,7 @@ SUPPORT_LINKS = {
 
 
 PAGE_TITLES = {
+    "home": "home.heading",
     "dashboard": "nav.dashboard",
     "console": "nav.console",
     "settings": "nav.settings",
@@ -80,8 +83,30 @@ PAGE_TITLES = {
 }
 
 
-def _services(request: Request):
+def _app_state(request: Request):
     return request.app.state
+
+
+def _registry(request: Request):
+    return _app_state(request).server_registry_service
+
+
+def _active_server_id(request: Request) -> str | None:
+    return request.cookies.get(ACTIVE_SERVER_COOKIE)
+
+
+def _services(request: Request):
+    return _registry(request).get_runtime(_active_server_id(request))
+
+
+def _set_active_server_cookie(response: JSONResponse | RedirectResponse, server_id: str) -> None:
+    response.set_cookie(
+        ACTIVE_SERVER_COOKIE,
+        server_id,
+        max_age=60 * 60 * 24 * 365,
+        samesite="lax",
+        httponly=False,
+    )
 
 
 def _raise_bad_request(exc: Exception) -> None:
@@ -109,36 +134,40 @@ def _localized_navigation(locale: str) -> list[dict[str, Any]]:
 
 
 def _page_context(request: Request, *, active_page: str) -> dict[str, Any]:
+    app_state = _app_state(request)
     state = _services(request)
     locale = _locale(request)
     ui = translations_for(locale)
     settings = state.settings_service.get()
     env_entries = state.env_service.list_entries()
     panel_meta = state.panel_meta_service.get()
-    server_address = request.headers.get("host") or f"localhost:{state.config.port}"
+    servers = _registry(request).list_records()
+    server_address = request.headers.get("host") or f"localhost:{app_state.config.port}"
 
     return {
         "request": request,
-        "app_name": state.config.app_name,
+        "app_name": app_state.config.app_name,
         "page_title": translate(locale, PAGE_TITLES[active_page]),
         "active_page": active_page,
         "navigation": _localized_navigation(locale),
         "settings": settings.model_dump(mode="json"),
         "panel_meta": panel_meta.model_dump(mode="json"),
+        "servers": [server.model_dump(mode="json") for server in servers],
+        "active_server_id": state.record.server_id,
         "env_entries": [entry.model_dump(mode="json") for entry in env_entries],
         "workspace_path": str(state.config.workspace_dir),
-        "auth_enabled": bool(state.config.ui_username and state.config.ui_password),
+        "auth_enabled": bool(app_state.config.ui_username and app_state.config.ui_password),
         "server_address": server_address,
         "support_links": SUPPORT_LINKS,
         "locale": locale,
         "ui": ui,
         "runtime_version": f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
-        "timezone": state.config.timezone,
+        "timezone": app_state.config.timezone,
     }
 
 
 def _render_page(request: Request, template_name: str, *, active_page: str) -> HTMLResponse:
-    return _services(request).templates.TemplateResponse(
+    return _app_state(request).templates.TemplateResponse(
         request,
         template_name,
         _page_context(request, active_page=active_page),
@@ -146,9 +175,21 @@ def _render_page(request: Request, template_name: str, *, active_page: str) -> H
 
 
 @router.get("/", response_class=HTMLResponse)
+async def home_page(request: Request) -> HTMLResponse:
+    return _render_page(request, "home.html", active_page="home")
+
+
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page(request: Request) -> HTMLResponse:
     return _render_page(request, "dashboard.html", active_page="dashboard")
+
+
+@router.get("/servers/{server_id}", response_class=HTMLResponse)
+async def select_server(request: Request, server_id: str) -> RedirectResponse:
+    runtime = _registry(request).get_runtime(server_id)
+    response = RedirectResponse(url="/dashboard", status_code=303)
+    _set_active_server_cookie(response, runtime.record.server_id)
+    return response
 
 
 @router.get("/console", response_class=HTMLResponse)
@@ -206,6 +247,30 @@ async def startup_page(request: Request) -> HTMLResponse:
 @router.get("/health")
 async def health() -> JSONResponse:
     return JSONResponse({"ok": True})
+
+
+@router.get("/api/servers")
+async def list_servers(request: Request) -> JSONResponse:
+    return JSONResponse(
+        {
+            "items": [server.model_dump(mode="json") for server in _registry(request).list_records()],
+            "active_server_id": _services(request).record.server_id,
+        }
+    )
+
+
+@router.post("/api/servers")
+async def create_server(request: Request, payload: CreateServerRequest) -> JSONResponse:
+    runtime = await _registry(request).create_server(payload.display_name, payload.description)
+    response = JSONResponse(
+        {
+            "ok": True,
+            "server": runtime.record.model_dump(mode="json"),
+        },
+        status_code=201,
+    )
+    _set_active_server_cookie(response, runtime.record.server_id)
+    return response
 
 
 @router.get("/api/status")
@@ -549,7 +614,9 @@ async def websocket_logs(websocket: WebSocket, channel: str) -> None:
         return
 
     await websocket.accept()
-    log_service = websocket.app.state.log_service
+    registry = websocket.app.state.server_registry_service
+    runtime = registry.get_runtime(websocket.cookies.get(ACTIVE_SERVER_COOKIE))
+    log_service = runtime.log_service
     queue = log_service.subscribe(channel)
 
     try:
