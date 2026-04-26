@@ -32,19 +32,45 @@ const dateTimeFormatter = new Intl.DateTimeFormat(state.locale === "de" ? "de-AT
     timeStyle: "short",
 });
 const tourSteps = [
+    "tour.step_home",
     "tour.step_dashboard",
     "tour.step_console",
     "tour.step_files",
+    "tour.step_settings",
     "tour.step_startup",
     "tour.step_activity",
+    "tour.step_management",
+];
+const detailedTourSteps = [
+    "tour.detail_home_create",
+    "tour.detail_home_open_delete",
+    "tour.detail_sidebar_controls",
+    "tour.detail_dashboard_metrics",
+    "tour.detail_console_commands",
+    "tour.detail_console_tasks",
+    "tour.detail_files_select",
+    "tour.detail_files_upload",
+    "tour.detail_files_actions",
+    "tour.detail_settings_meta",
+    "tour.detail_activity_logs",
+    "tour.detail_startup_command",
+    "tour.detail_startup_runtime",
+    "tour.detail_startup_env",
+    "tour.detail_startup_packages",
+    "tour.detail_backups",
+    "tour.detail_network",
+    "tour.detail_schedules",
+    "tour.detail_users",
 ];
 const tourStorageKey = "katabot.panelTour.seen.v2";
 let tourIndex = 0;
+let activeTourSteps = tourSteps;
 
 document.addEventListener("DOMContentLoaded", () => {
     collectBaseElements();
     localizeModalDefaults();
     bindModal();
+    bindAccountMenu();
     bindTour();
     bindGlobalBotControls();
     initializePage();
@@ -54,6 +80,31 @@ document.addEventListener("DOMContentLoaded", () => {
     window.setInterval(() => refreshStatus({ silent: true }), 5000);
     window.setInterval(() => refreshMetrics({ silent: true }), 10000);
 });
+
+function bindAccountMenu() {
+    els.accountMoreBtn?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        els.accountMenu?.classList.toggle("hidden");
+    });
+    els.deleteActiveServerBtn?.addEventListener("click", () => deleteServer(state.activeServerId, state.panelMeta.display_name));
+    document.addEventListener("click", (event) => {
+        if (!els.accountMenu || els.accountMenu.classList.contains("hidden")) return;
+        if (!event.target.closest(".account-menu-wrap")) els.accountMenu.classList.add("hidden");
+    });
+}
+
+async function deleteServer(serverId, serverName) {
+    if (!serverId || serverId === "default") return;
+    if (!window.confirm(tr("error.delete_server_confirm", { name: serverName || serverId }))) return;
+    try {
+        await api(`/api/servers/${encodeURIComponent(serverId)}`, { method: "DELETE" });
+        showToastKey("toast.server_deleted");
+        window.location.href = "/";
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
 
 function collectBaseElements() {
     Object.assign(els, {
@@ -76,9 +127,13 @@ function collectBaseElements() {
         mascotHelpBtn: byId("mascotHelpBtn"),
         tourShell: byId("tourShell"),
         tourText: byId("tourText"),
+        tourModePicker: byId("tourModePicker"),
         tourProgress: byId("tourProgress"),
         tourNextBtn: byId("tourNextBtn"),
         tourSkipBtn: byId("tourSkipBtn"),
+        accountMoreBtn: byId("accountMoreBtn"),
+        accountMenu: byId("accountMenu"),
+        deleteActiveServerBtn: byId("deleteActiveServerBtn"),
         globalActionButtons: queryAll("[data-bot-action]"),
         serverNameLabels: queryAll(".server-name"),
         statusBadges: queryAll('[data-status-field="badge"]'),
@@ -167,6 +222,14 @@ function bindHomePage() {
         } catch (error) {
             showToast(error.message, "error");
         }
+    });
+
+    queryAll(".server-delete-btn").forEach((button) => {
+        button.addEventListener("click", async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            await deleteServer(button.dataset.serverId, button.dataset.serverName);
+        });
     });
 }
 
@@ -1568,8 +1631,13 @@ function bindTour() {
     if (!els.tourShell || !els.tourNextBtn || !els.tourSkipBtn) return;
 
     els.mascotHelpBtn?.addEventListener("click", () => openTour({ force: true }));
+    els.tourModePicker?.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-tour-mode]");
+        if (!button) return;
+        startTourMode(button.dataset.tourMode === "detailed" ? "detailed" : "normal");
+    });
     els.tourNextBtn.addEventListener("click", () => {
-        if (tourIndex >= tourSteps.length - 1) {
+        if (tourIndex >= activeTourSteps.length - 1) {
             closeTour({ remember: true });
             return;
         }
@@ -1611,9 +1679,10 @@ function openTour({ force = false } = {}) {
     if (!els.tourShell) return;
     if (!force && hasSeenTour()) return;
     tourIndex = 0;
-    renderTourStep();
+    activeTourSteps = [];
+    renderTourIntro();
     els.tourShell.classList.remove("hidden");
-    window.setTimeout(() => els.tourNextBtn?.focus(), 0);
+    window.setTimeout(() => els.tourModePicker?.querySelector("button")?.focus(), 0);
 }
 
 function closeTour({ remember = false } = {}) {
@@ -1623,11 +1692,27 @@ function closeTour({ remember = false } = {}) {
 
 function renderTourStep() {
     if (!els.tourText || !els.tourProgress || !els.tourNextBtn) return;
-    els.tourText.textContent = tr(tourSteps[tourIndex]);
-    els.tourNextBtn.textContent = tourIndex >= tourSteps.length - 1 ? tr("tour.finish") : tr("tour.next");
-    els.tourProgress.innerHTML = tourSteps
+    els.tourModePicker?.classList.add("hidden");
+    els.tourNextBtn.classList.remove("hidden");
+    els.tourText.textContent = tr(activeTourSteps[tourIndex]);
+    els.tourNextBtn.textContent = tourIndex >= activeTourSteps.length - 1 ? tr("tour.finish") : tr("tour.next");
+    els.tourProgress.innerHTML = activeTourSteps
         .map((_, index) => `<span class="${index === tourIndex ? "is-active" : ""}"></span>`)
         .join("");
+}
+
+function renderTourIntro() {
+    if (!els.tourText || !els.tourProgress || !els.tourNextBtn) return;
+    els.tourText.textContent = tr("tour.choose_mode");
+    els.tourProgress.innerHTML = "";
+    els.tourModePicker?.classList.remove("hidden");
+    els.tourNextBtn.classList.add("hidden");
+}
+
+function startTourMode(mode) {
+    activeTourSteps = mode === "detailed" ? detailedTourSteps : tourSteps;
+    tourIndex = 0;
+    renderTourStep();
 }
 
 function switchLogTab(tab) {

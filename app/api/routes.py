@@ -273,6 +273,18 @@ async def create_server(request: Request, payload: CreateServerRequest) -> JSONR
     return response
 
 
+@router.delete("/api/servers/{server_id}")
+async def delete_server(request: Request, server_id: str) -> JSONResponse:
+    try:
+        await _registry(request).delete_server(server_id)
+    except ValueError as exc:
+        _raise_bad_request(exc)
+    response = JSONResponse({"ok": True, "active_server_id": "default"})
+    if _active_server_id(request) == server_id:
+        _set_active_server_cookie(response, "default")
+    return response
+
+
 @router.get("/api/status")
 async def get_status(request: Request) -> JSONResponse:
     return JSONResponse(await _services(request).bot_manager.status())

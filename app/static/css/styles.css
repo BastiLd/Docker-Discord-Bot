@@ -528,8 +528,16 @@ button {
     align-items: center;
     gap: 12px;
     min-width: 0;
+    flex: 1;
     padding-top: 8px;
     background: transparent;
+}
+
+.account-menu-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .account-mark {
@@ -585,6 +593,57 @@ button {
     width: 4px;
     height: 16px;
     position: relative;
+}
+
+.account-more-button {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-main);
+    cursor: pointer;
+}
+
+.account-more-button:hover,
+.account-more-button:focus-visible {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.account-menu {
+    position: absolute;
+    right: 0;
+    bottom: 42px;
+    z-index: 30;
+    width: 190px;
+    display: grid;
+    gap: 4px;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: #252848;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
+}
+
+.account-menu a,
+.account-menu button {
+    width: 100%;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-main);
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.account-menu a:hover,
+.account-menu button:hover {
+    background: rgba(255, 95, 38, 0.16);
 }
 
 .account-more::before {
@@ -804,6 +863,17 @@ button {
     color: var(--text);
     text-decoration: none;
     border: 1px solid transparent;
+}
+
+.server-delete-btn {
+    grid-column: 3;
+    justify-self: end;
+    padding: 8px 10px;
+    border: 1px solid rgba(255, 95, 38, 0.34);
+    border-radius: 6px;
+    background: rgba(154, 36, 50, 0.34);
+    color: var(--text-main);
+    cursor: pointer;
 }
 
 .server-card-home:hover,
@@ -2257,6 +2327,12 @@ body[data-page="console"] .mascot-help-button {
     align-items: center;
 }
 
+.tour-mode-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
 .tour-progress span {
     width: 28px;
     height: 5px;
@@ -2509,7 +2585,8 @@ body[data-page="console"] .mascot-help-button {
     }
 
     .server-card-home > .btn,
-    .server-card-home > .status-pill {
+    .server-card-home > .status-pill,
+    .server-delete-btn {
         grid-column: 1 / -1;
         justify-self: start;
     }

@@ -41,7 +41,7 @@ class AppConfig:
         if server_id == "default":
             return self
 
-        server_root = self.data_root / "servers" / server_id
+        server_root = self.config_dir / "servers" / server_id
         return replace(
             self,
             workspace_dir=server_root / "workspace",
@@ -53,12 +53,15 @@ class AppConfig:
 
 
 def load_config() -> AppConfig:
+    raw_data_root = os.getenv("DATA_ROOT")
     data_root = _path_from_env("DATA_ROOT", BASE_DIR / "data")
     workspace_dir = _path_from_env("WORKSPACE_DIR", data_root / "workspace")
     config_dir = _path_from_env("CONFIG_DIR", data_root / "config")
     log_dir = _path_from_env("LOG_DIR", data_root / "logs")
     backup_dir = _path_from_env("BACKUP_DIR", data_root / "backups")
     venv_dir = _path_from_env("VENV_DIR", data_root / "venv")
+    if not raw_data_root:
+        data_root = workspace_dir.parent
 
     return AppConfig(
         app_name=os.getenv("APP_NAME", "Homelab Discord Bot Manager"),

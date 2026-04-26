@@ -27,12 +27,15 @@
         <span class="server-card-copy">
             <strong>{{ server.display_name }}</strong>
             <span>{{ server.description or ui["home.workspace_hint"] }}</span>
-            <small>{{ "/data/workspace" if server.server_id == "default" else "/data/servers/" ~ server.server_id ~ "/workspace" }}</small>
+            <small>{{ "/data/workspace" if server.server_id == "default" else "/data/config/servers/" ~ server.server_id ~ "/workspace" }}</small>
         </span>
         {% if server.server_id == active_server_id %}
         <span class="status-pill is-stopped">{{ ui["home.active"] }}</span>
         {% else %}
         <span class="btn btn-secondary">{{ ui["home.open"] }}</span>
+        {% endif %}
+        {% if server.server_id != "default" %}
+        <button class="server-delete-btn" type="button" data-server-id="{{ server.server_id }}" data-server-name="{{ server.display_name }}">{{ ui["home.delete"] }}</button>
         {% endif %}
     </a>
     {% endfor %}

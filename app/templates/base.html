@@ -70,14 +70,22 @@
                 </nav>
 
                 <div class="sidebar-footer">
+                    <div class="account-menu-wrap">
                     <a class="account-link" href="/settings">
                         <span class="account-mark" aria-hidden="true"></span>
                         <div class="account-copy">
                             <strong>{{ ui["layout.account"] }}</strong>
                             <span>{% if auth_enabled %}{{ ui["layout.auth_enabled"] }}{% else %}{{ ui["layout.auth_disabled"] }}{% endif %}</span>
                         </div>
-                        <span class="account-more" aria-hidden="true"></span>
                     </a>
+                    <button class="account-more-button" id="accountMoreBtn" type="button" aria-label="{{ ui['account.menu'] }}"><span class="account-more" aria-hidden="true"></span></button>
+                    <div class="account-menu hidden" id="accountMenu">
+                        <a href="/">{{ ui["account.server_overview"] }}</a>
+                        {% if active_server_id != "default" %}
+                        <button type="button" id="deleteActiveServerBtn">{{ ui["account.delete_server"] }}</button>
+                        {% endif %}
+                    </div>
+                    </div>
                     <p class="workspace-path" title="{{ workspace_path }}">/data/workspace</p>
                 </div>
             </div>
@@ -158,6 +166,10 @@
                 <p class="section-label" id="tourEyebrow">{{ ui["tour.eyebrow"] }}</p>
                 <h2 id="tourTitle">{{ ui["tour.title"] }}</h2>
                 <p id="tourText">{{ ui["tour.step_dashboard"] }}</p>
+                <div class="tour-mode-picker" id="tourModePicker">
+                    <button class="btn btn-secondary" type="button" data-tour-mode="normal">{{ ui["tour.normal"] }}</button>
+                    <button class="btn btn-primary" type="button" data-tour-mode="detailed">{{ ui["tour.detailed"] }}</button>
+                </div>
                 <div class="tour-progress" id="tourProgress"></div>
                 <div class="toolbar-actions tour-actions">
                     <button class="btn btn-secondary" id="tourSkipBtn" type="button">{{ ui["tour.skip"] }}</button>

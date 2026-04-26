@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -79,6 +80,27 @@ class ServerRegistryService:
         await runtime.schedule_service.start()
         await runtime.log_service.write("system", f"Server profile created: {record.display_name}")
         return runtime
+
+    async def delete_server(self, server_id: str) -> None:
+        if server_id == "default":
+            raise ValueError("Default server cannot be deleted.")
+        record = self._record_for(server_id)
+        if record.server_id != server_id:
+            raise ValueError("Server not found.")
+
+        runtime = self.runtimes.pop(server_id, None)
+        if runtime:
+            await runtime.schedule_service.shutdown()
+            await runtime.bot_manager.shutdown()
+            await runtime.task_manager.shutdown()
+
+        self.records = [item for item in self.records if item.server_id != server_id]
+        self._save_records()
+
+        server_root = (self.base_config.config_dir / "servers" / server_id).resolve()
+        servers_root = (self.base_config.config_dir / "servers").resolve()
+        if server_root.is_relative_to(servers_root) and server_root.exists():
+            shutil.rmtree(server_root)
 
     async def start_all_schedules(self) -> None:
         for record in self.records:
