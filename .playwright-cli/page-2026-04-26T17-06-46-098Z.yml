@@ -1,0 +1,149 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]:
+        - link "Homelab Discord Bot Manager" [ref=e5] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e10]: Homelab Discord Bot Manager
+        - generic [ref=e11]:
+          - generic [ref=e14]:
+            - strong [ref=e15]: Discord-Bot
+            - text: 127.0.0.1:8080
+          - generic [ref=e16]:
+            - button "Start" [ref=e17] [cursor=pointer]
+            - button "Restart" [ref=e19] [cursor=pointer]
+            - button "Stop" [ref=e21] [cursor=pointer]
+          - generic [ref=e23]:
+            - generic [ref=e24]:
+              - term [ref=e25]: Status
+              - definition [ref=e26]:
+                - generic [ref=e27]: Offline
+            - generic [ref=e28]:
+              - term [ref=e29]: PID
+              - definition [ref=e30]: "-"
+            - generic [ref=e31]:
+              - term [ref=e32]: Uptime
+              - definition [ref=e33]: n/a
+          - paragraph
+        - navigation "Navigation" [ref=e34]:
+          - generic [ref=e35]:
+            - paragraph [ref=e36]: General
+            - generic [ref=e37]:
+              - link "Dashboard" [ref=e38] [cursor=pointer]:
+                - /url: /dashboard
+                - generic [ref=e40]: Dashboard
+              - link "Console" [ref=e41] [cursor=pointer]:
+                - /url: /console
+                - generic [ref=e43]: Console
+              - link "Settings" [ref=e44] [cursor=pointer]:
+                - /url: /settings
+                - generic [ref=e46]: Settings
+              - link "Activity" [ref=e47] [cursor=pointer]:
+                - /url: /activity
+                - generic [ref=e49]: Activity
+          - generic [ref=e50]:
+            - paragraph [ref=e51]: Management
+            - generic [ref=e52]:
+              - link "Files" [ref=e53] [cursor=pointer]:
+                - /url: /files
+                - generic [ref=e55]: Files
+              - link "Databases" [ref=e56] [cursor=pointer]:
+                - /url: /databases
+                - generic [ref=e58]: Databases
+              - link "Backups" [ref=e59] [cursor=pointer]:
+                - /url: /backups
+                - generic [ref=e61]: Backups
+              - link "Network" [ref=e62] [cursor=pointer]:
+                - /url: /network
+                - generic [ref=e64]: Network
+          - generic [ref=e65]:
+            - paragraph [ref=e66]: Configuration
+            - generic [ref=e67]:
+              - link "Schedules" [ref=e68] [cursor=pointer]:
+                - /url: /schedules
+                - generic [ref=e70]: Schedules
+              - link "Users" [ref=e71] [cursor=pointer]:
+                - /url: /users
+                - generic [ref=e73]: Users
+              - link "Startup" [ref=e74] [cursor=pointer]:
+                - /url: /startup
+                - generic [ref=e76]: Startup
+        - generic [ref=e77]:
+          - link "Account Local access only" [ref=e78] [cursor=pointer]:
+            - /url: /settings
+            - generic [ref=e80]:
+              - strong [ref=e81]: Account
+              - generic [ref=e82]: Local access only
+          - paragraph [ref=e84]: /data/workspace
+    - generic [ref=e85]:
+      - banner [ref=e86]:
+        - button "Quick focus" [ref=e87] [cursor=pointer]
+        - generic [ref=e89]:
+          - link "Discord" [ref=e90] [cursor=pointer]:
+            - /url: https://discord.com/developers/applications
+          - link "Support center" [ref=e91] [cursor=pointer]:
+            - /url: https://github.com/BastiLd/Docker-Discord-Bot
+      - main [ref=e92]:
+        - generic [ref=e94]:
+          - paragraph [ref=e95]: Server Overview
+          - heading "Discord-Bot" [level=1] [ref=e96]
+          - paragraph [ref=e97]: Local bot runtime with files, console, schedules and backups in one compact control panel.
+          - generic [ref=e98]:
+            - generic [ref=e99]: Offline
+            - generic [ref=e100]: python bot.py
+        - generic [ref=e114]:
+          - article [ref=e115]:
+            - generic [ref=e116]:
+              - generic [ref=e117]: CPU Usage
+              - strong [ref=e118]: 0.1%
+              - generic [ref=e119]: Offline
+          - article [ref=e121]:
+            - generic [ref=e122]:
+              - generic [ref=e123]: Memory Usage
+              - strong [ref=e124]: 1.1 GB / 7.4 GB
+              - generic [ref=e125]: Memory Usage
+          - article [ref=e127]:
+            - generic [ref=e128]:
+              - generic [ref=e129]: Disk Usage
+              - strong [ref=e130]: 769.1 GB / 806.6 GB
+              - generic [ref=e131]: Disk Usage
+        - generic [ref=e133]:
+          - article [ref=e134]:
+            - heading "Server Info" [level=2] [ref=e135]
+            - generic [ref=e136]:
+              - generic [ref=e137]:
+                - term [ref=e138]: Status
+                - definition [ref=e139]:
+                  - generic [ref=e140]: Offline
+              - generic [ref=e141]:
+                - term [ref=e142]: Uptime
+                - definition [ref=e143]: n/a
+              - generic [ref=e144]:
+                - term [ref=e145]: Hostname
+                - definition [ref=e146]: 127.0.0.1:8080
+              - generic [ref=e147]:
+                - term [ref=e148]: Server IP
+                - definition [ref=e149]: 127.0.0.1
+              - generic [ref=e150]:
+                - term [ref=e151]: Node ID
+                - definition [ref=e152]: GRA-N47 - Gratuit
+              - generic [ref=e153]:
+                - term [ref=e154]: Server ID
+                - definition [ref=e155]: local-bot
+          - article [ref=e156]:
+            - heading "Server Info" [level=2] [ref=e157]
+            - generic [ref=e158]:
+              - generic [ref=e159]:
+                - term [ref=e160]: Hostname
+                - definition [ref=e161]: 127.0.0.1:8080
+              - generic [ref=e162]:
+                - term [ref=e163]: Node ID
+                - definition [ref=e164]: GRA-N47 - Gratuit
+              - generic [ref=e165]:
+                - term [ref=e166]: Server ID
+                - definition [ref=e167]: "# local-bot"
+              - generic [ref=e168]:
+                - term [ref=e169]: Workspace
+                - definition [ref=e170]: /data/workspace
+  - button "Open panel tour" [ref=e171] [cursor=pointer]:
+    - generic [ref=e175]: Tour

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block page_body %}
-<section class="home-hero surface">
+<section class="home-hero">
     <div class="home-hero-copy">
         <p class="section-label">{{ ui["home.eyebrow"] }}</p>
         <h1>{{ ui["home.heading"] }}</h1>
@@ -22,7 +22,7 @@
 
 <section class="server-grid-home" aria-label="{{ ui['home.servers'] }}">
     {% for server in servers %}
-    <a class="server-card-home surface {% if server.server_id == active_server_id %}is-active{% endif %}" href="/servers/{{ server.server_id }}">
+    <a class="server-card-home {% if server.server_id == active_server_id %}is-active{% endif %}" href="/servers/{{ server.server_id }}">
         <span class="server-card-mark" aria-hidden="true"></span>
         <span class="server-card-copy">
             <strong>{{ server.display_name }}</strong>

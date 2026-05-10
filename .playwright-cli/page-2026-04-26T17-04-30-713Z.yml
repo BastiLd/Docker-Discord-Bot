@@ -1,0 +1,108 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]:
+        - link "Homelab Discord Bot Manager" [ref=e5] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e10]: Homelab Discord Bot Manager
+        - generic [ref=e11]:
+          - generic [ref=e14]:
+            - strong [ref=e15]: Discord-Bot
+            - text: 127.0.0.1:8080
+          - generic [ref=e16]:
+            - button "Start" [ref=e17] [cursor=pointer]
+            - button "Restart" [ref=e19] [cursor=pointer]
+            - button "Stop" [ref=e21] [cursor=pointer]
+          - generic [ref=e23]:
+            - generic [ref=e24]:
+              - term [ref=e25]: Status
+              - definition [ref=e26]:
+                - generic [ref=e27]: Offline
+            - generic [ref=e28]:
+              - term [ref=e29]: PID
+              - definition [ref=e30]: "-"
+            - generic [ref=e31]:
+              - term [ref=e32]: Uptime
+              - definition [ref=e33]: n/a
+          - paragraph
+        - navigation "Navigation" [ref=e34]:
+          - generic [ref=e35]:
+            - paragraph [ref=e36]: General
+            - generic [ref=e37]:
+              - link "Dashboard" [ref=e38] [cursor=pointer]:
+                - /url: /dashboard
+                - generic [ref=e40]: Dashboard
+              - link "Console" [ref=e41] [cursor=pointer]:
+                - /url: /console
+                - generic [ref=e43]: Console
+              - link "Settings" [ref=e44] [cursor=pointer]:
+                - /url: /settings
+                - generic [ref=e46]: Settings
+              - link "Activity" [ref=e47] [cursor=pointer]:
+                - /url: /activity
+                - generic [ref=e49]: Activity
+          - generic [ref=e50]:
+            - paragraph [ref=e51]: Management
+            - generic [ref=e52]:
+              - link "Files" [ref=e53] [cursor=pointer]:
+                - /url: /files
+                - generic [ref=e55]: Files
+              - link "Databases" [ref=e56] [cursor=pointer]:
+                - /url: /databases
+                - generic [ref=e58]: Databases
+              - link "Backups" [ref=e59] [cursor=pointer]:
+                - /url: /backups
+                - generic [ref=e61]: Backups
+              - link "Network" [ref=e62] [cursor=pointer]:
+                - /url: /network
+                - generic [ref=e64]: Network
+          - generic [ref=e65]:
+            - paragraph [ref=e66]: Configuration
+            - generic [ref=e67]:
+              - link "Schedules" [ref=e68] [cursor=pointer]:
+                - /url: /schedules
+                - generic [ref=e70]: Schedules
+              - link "Users" [ref=e71] [cursor=pointer]:
+                - /url: /users
+                - generic [ref=e73]: Users
+              - link "Startup" [ref=e74] [cursor=pointer]:
+                - /url: /startup
+                - generic [ref=e76]: Startup
+        - generic [ref=e77]:
+          - link "Account Local access only" [ref=e78] [cursor=pointer]:
+            - /url: /settings
+            - generic [ref=e80]:
+              - strong [ref=e81]: Account
+              - generic [ref=e82]: Local access only
+          - paragraph [ref=e84]: /data/workspace
+    - generic [ref=e85]:
+      - banner [ref=e86]:
+        - button "Quick focus" [ref=e87] [cursor=pointer]
+        - generic [ref=e89]:
+          - link "Discord" [ref=e90] [cursor=pointer]:
+            - /url: https://discord.com/developers/applications
+          - link "Support center" [ref=e91] [cursor=pointer]:
+            - /url: https://github.com/BastiLd/Docker-Discord-Bot
+      - main [ref=e92]:
+        - generic [ref=e93]:
+          - article [ref=e94]:
+            - generic [ref=e95]:
+              - generic [ref=e96]:
+                - paragraph [ref=e97]: Activity
+                - heading "Bot and system logs" [level=1] [ref=e98]
+                - paragraph [ref=e99]: Live output stays contained, readable and ready to download.
+              - generic [ref=e100]:
+                - button "Bot logs" [ref=e101] [cursor=pointer]
+                - button "System logs" [ref=e102] [cursor=pointer]
+                - link "Download" [ref=e103] [cursor=pointer]:
+                  - /url: /api/logs/bot/download
+            - generic [ref=e104]: "[2026-04-26 15:34:38] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:34:38] Traceback (most recent call last): [2026-04-26 15:34:38] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:34:38] import discord [2026-04-26 15:34:38] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:34:43] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:34:43] Traceback (most recent call last): [2026-04-26 15:34:43] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:34:43] import discord [2026-04-26 15:34:43] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:34:48] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:34:48] Traceback (most recent call last): [2026-04-26 15:34:48] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:34:48] import discord [2026-04-26 15:34:48] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:34:54] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:34:54] Traceback (most recent call last): [2026-04-26 15:34:54] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:34:54] import discord [2026-04-26 15:34:54] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:34:59] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:34:59] Traceback (most recent call last): [2026-04-26 15:34:59] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:34:59] import discord [2026-04-26 15:34:59] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:35:04] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:35:04] Traceback (most recent call last): [2026-04-26 15:35:04] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:35:04] import discord [2026-04-26 15:35:04] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:35:09] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:35:09] Traceback (most recent call last): [2026-04-26 15:35:09] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:35:09] import discord [2026-04-26 15:35:09] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:35:14] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:35:14] Traceback (most recent call last): [2026-04-26 15:35:14] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:35:14] import discord [2026-04-26 15:35:14] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:35:19] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:35:19] Traceback (most recent call last): [2026-04-26 15:35:19] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:35:19] import discord [2026-04-26 15:35:19] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:35:24] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:35:24] Traceback (most recent call last): [2026-04-26 15:35:24] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:35:24] import discord [2026-04-26 15:35:24] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:35:29] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:35:29] Traceback (most recent call last): [2026-04-26 15:35:29] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:35:29] import discord [2026-04-26 15:35:29] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:35:34] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:35:34] Traceback (most recent call last): [2026-04-26 15:35:34] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:35:34] import discord [2026-04-26 15:35:34] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:35:39] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:35:39] Traceback (most recent call last): [2026-04-26 15:35:39] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:35:39] import discord [2026-04-26 15:35:39] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:35:44] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:35:44] Traceback (most recent call last): [2026-04-26 15:35:44] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:35:44] import discord [2026-04-26 15:35:44] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:35:49] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:35:49] Traceback (most recent call last): [2026-04-26 15:35:49] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:35:49] import discord [2026-04-26 15:35:49] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:35:54] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:35:54] Traceback (most recent call last): [2026-04-26 15:35:54] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:35:54] import discord [2026-04-26 15:35:54] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:35:59] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:35:59] Traceback (most recent call last): [2026-04-26 15:35:59] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:35:59] import discord [2026-04-26 15:35:59] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:36:04] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:36:05] Traceback (most recent call last): [2026-04-26 15:36:05] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:36:05] import discord [2026-04-26 15:36:05] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:36:10] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:36:10] Traceback (most recent call last): [2026-04-26 15:36:10] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:36:10] import discord [2026-04-26 15:36:10] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:36:15] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:36:15] Traceback (most recent call last): [2026-04-26 15:36:15] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:36:15] import discord [2026-04-26 15:36:15] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:36:20] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:36:20] Traceback (most recent call last): [2026-04-26 15:36:20] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:36:20] import discord [2026-04-26 15:36:20] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:36:25] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:36:25] Traceback (most recent call last): [2026-04-26 15:36:25] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:36:25] import discord [2026-04-26 15:36:25] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:36:30] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:36:30] Traceback (most recent call last): [2026-04-26 15:36:30] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:36:30] import discord [2026-04-26 15:36:30] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:36:35] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:36:35] Traceback (most recent call last): [2026-04-26 15:36:35] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:36:35] import discord [2026-04-26 15:36:35] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:36:40] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:36:40] Traceback (most recent call last): [2026-04-26 15:36:40] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:36:40] import discord [2026-04-26 15:36:40] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:36:45] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:36:45] Traceback (most recent call last): [2026-04-26 15:36:45] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:36:45] import discord [2026-04-26 15:36:45] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:36:50] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:36:50] Traceback (most recent call last): [2026-04-26 15:36:50] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:36:50] import discord [2026-04-26 15:36:50] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:36:55] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:36:55] Traceback (most recent call last): [2026-04-26 15:36:55] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:36:55] import discord [2026-04-26 15:36:55] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:37:00] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:37:00] Traceback (most recent call last): [2026-04-26 15:37:00] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:37:00] import discord [2026-04-26 15:37:00] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:37:05] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:37:05] Traceback (most recent call last): [2026-04-26 15:37:05] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:37:05] import discord [2026-04-26 15:37:05] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:37:10] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:37:10] Traceback (most recent call last): [2026-04-26 15:37:10] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:37:10] import discord [2026-04-26 15:37:10] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:37:15] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:37:15] Traceback (most recent call last): [2026-04-26 15:37:15] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:37:15] import discord [2026-04-26 15:37:15] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:37:20] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:37:21] Traceback (most recent call last): [2026-04-26 15:37:21] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:37:21] import discord [2026-04-26 15:37:21] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:37:26] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:37:26] Traceback (most recent call last): [2026-04-26 15:37:26] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:37:26] import discord [2026-04-26 15:37:26] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:37:31] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:37:31] Traceback (most recent call last): [2026-04-26 15:37:31] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:37:31] import discord [2026-04-26 15:37:31] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:37:36] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:37:36] Traceback (most recent call last): [2026-04-26 15:37:36] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:37:36] import discord [2026-04-26 15:37:36] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:37:41] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:37:41] Traceback (most recent call last): [2026-04-26 15:37:41] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:37:41] import discord [2026-04-26 15:37:41] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:37:46] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:37:46] Traceback (most recent call last): [2026-04-26 15:37:46] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:37:46] import discord [2026-04-26 15:37:46] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:37:51] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:37:51] Traceback (most recent call last): [2026-04-26 15:37:51] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:37:51] import discord [2026-04-26 15:37:51] ModuleNotFoundError: No module named 'discord' [2026-04-26 15:37:56] Prozess gestartet: /usr/local/bin/python bot.py [2026-04-26 15:37:56] Traceback (most recent call last): [2026-04-26 15:37:56] File \"/data/workspace/bot.py\", line 2, in <module> [2026-04-26 15:37:56] import discord [2026-04-26 15:37:56] ModuleNotFoundError: No module named 'discord'"
+          - article [ref=e105]:
+            - generic [ref=e107]:
+              - paragraph [ref=e108]: Activity log
+              - heading "Process events" [level=2] [ref=e109]
+              - paragraph [ref=e110]: Recent starts, stops, crashes and restarts.
+            - generic [ref=e112]:
+              - strong [ref=e113]: No process events recorded yet.
+              - generic [ref=e114]: Recent starts, stops, crashes and restarts.
+  - button "Open panel tour" [ref=e115] [cursor=pointer]

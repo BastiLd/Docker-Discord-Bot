@@ -31,40 +31,41 @@ const dateTimeFormatter = new Intl.DateTimeFormat(state.locale === "de" ? "de-AT
     dateStyle: "medium",
     timeStyle: "short",
 });
-const tourSteps = [
-    "tour.step_home",
-    "tour.step_dashboard",
-    "tour.step_console",
-    "tour.step_files",
-    "tour.step_settings",
-    "tour.step_startup",
-    "tour.step_activity",
-    "tour.step_management",
+const normalTourSteps = [
+    { page: "home", url: "/", selector: ".home-hero", textKey: "tour.step_home", titleKey: "tour.title_home" },
+    { page: "dashboard", url: "/dashboard", selector: ".hero-banner", textKey: "tour.step_dashboard", titleKey: "tour.title_dashboard" },
+    { page: "console", url: "/console", selector: "#consoleForm", textKey: "tour.step_console", titleKey: "tour.title_console" },
+    { page: "files", url: "/files", selector: "#fileBrowserView", textKey: "tour.step_files", titleKey: "tour.title_files" },
+    { page: "settings", url: "/settings", selector: ".page-shell", textKey: "tour.step_settings", titleKey: "tour.title_settings" },
+    { page: "startup", url: "/startup", selector: ".page-shell", textKey: "tour.step_startup", titleKey: "tour.title_startup" },
+    { page: "activity", url: "/activity", selector: "#logOutput", textKey: "tour.step_activity", titleKey: "tour.title_activity" },
+    { page: "dashboard", url: "/dashboard", selector: ".nav-groups", textKey: "tour.step_management", titleKey: "tour.title_management" },
 ];
 const detailedTourSteps = [
-    "tour.detail_home_create",
-    "tour.detail_home_open_delete",
-    "tour.detail_sidebar_controls",
-    "tour.detail_dashboard_metrics",
-    "tour.detail_console_commands",
-    "tour.detail_console_tasks",
-    "tour.detail_files_select",
-    "tour.detail_files_upload",
-    "tour.detail_files_actions",
-    "tour.detail_settings_meta",
-    "tour.detail_activity_logs",
-    "tour.detail_startup_command",
-    "tour.detail_startup_runtime",
-    "tour.detail_startup_env",
-    "tour.detail_startup_packages",
-    "tour.detail_backups",
-    "tour.detail_network",
-    "tour.detail_schedules",
-    "tour.detail_users",
+    { page: "home", url: "/", selector: ".home-create-card", textKey: "tour.detail_home_create", titleKey: "tour.title_home" },
+    { page: "home", url: "/", selector: ".server-grid-home", textKey: "tour.detail_home_open_delete", titleKey: "tour.title_home" },
+    { page: "dashboard", url: "/dashboard", selector: ".server-block", textKey: "tour.detail_sidebar_controls", titleKey: "tour.title_sidebar" },
+    { page: "dashboard", url: "/dashboard", selector: ".hero-banner", textKey: "tour.detail_dashboard_metrics", titleKey: "tour.title_dashboard" },
+    { page: "console", url: "/console", selector: "#consoleForm", textKey: "tour.detail_console_commands", titleKey: "tour.title_console" },
+    { page: "console", url: "/console", selector: "#taskList", textKey: "tour.detail_console_tasks", titleKey: "tour.title_console" },
+    { page: "files", url: "/files", selector: "#fileBrowserView", textKey: "tour.detail_files_select", titleKey: "tour.title_files" },
+    { page: "files", url: "/files", selector: "#fileBrowserView", textKey: "tour.detail_files_upload", titleKey: "tour.title_files" },
+    { page: "files", url: "/files", selector: "#fileBrowserView", textKey: "tour.detail_files_actions", titleKey: "tour.title_files" },
+    { page: "settings", url: "/settings", selector: ".page-shell", textKey: "tour.detail_settings_meta", titleKey: "tour.title_settings" },
+    { page: "activity", url: "/activity", selector: "#logOutput", textKey: "tour.detail_activity_logs", titleKey: "tour.title_activity" },
+    { page: "startup", url: "/startup", selector: "#startCommandInput", textKey: "tour.detail_startup_command", titleKey: "tour.title_startup" },
+    { page: "startup", url: "/startup", selector: ".page-shell", textKey: "tour.detail_startup_runtime", titleKey: "tour.title_startup" },
+    { page: "startup", url: "/startup", selector: "#envList", textKey: "tour.detail_startup_env", titleKey: "tour.title_startup" },
+    { page: "startup", url: "/startup", selector: ".page-shell", textKey: "tour.detail_startup_packages", titleKey: "tour.title_startup" },
+    { page: "backups", url: "/backups", selector: ".page-shell", textKey: "tour.detail_backups", titleKey: "tour.title_backups" },
+    { page: "network", url: "/network", selector: ".page-shell", textKey: "tour.detail_network", titleKey: "tour.title_network" },
+    { page: "schedules", url: "/schedules", selector: ".page-shell", textKey: "tour.detail_schedules", titleKey: "tour.title_schedules" },
+    { page: "users", url: "/users", selector: ".page-shell", textKey: "tour.detail_users", titleKey: "tour.title_users" },
 ];
-const tourStorageKey = "katabot.panelTour.seen.v2";
+const tourStorageKey = "katabot.panelTour.seen.v3";
+const tourStateKey = "katabot.tourActive";
 let tourIndex = 0;
-let activeTourSteps = tourSteps;
+let activeTourSteps = normalTourSteps;
 
 document.addEventListener("DOMContentLoaded", () => {
     collectBaseElements();
@@ -128,9 +129,17 @@ function collectBaseElements() {
         tourShell: byId("tourShell"),
         tourText: byId("tourText"),
         tourModePicker: byId("tourModePicker"),
-        tourProgress: byId("tourProgress"),
-        tourNextBtn: byId("tourNextBtn"),
         tourSkipBtn: byId("tourSkipBtn"),
+        spotlightHighlight: byId("spotlightHighlight"),
+        spotlightConnector: byId("spotlightConnector"),
+        spotlightTooltip: byId("spotlightTooltip"),
+        spotlightEyebrow: byId("spotlightEyebrow"),
+        spotlightTitle: byId("spotlightTitle"),
+        spotlightText: byId("spotlightText"),
+        spotlightProgress: byId("spotlightProgress"),
+        spotlightCounter: byId("spotlightCounter"),
+        spotlightNextBtn: byId("spotlightNextBtn"),
+        spotlightSkipBtn: byId("spotlightSkipBtn"),
         accountMoreBtn: byId("accountMoreBtn"),
         accountMenu: byId("accountMenu"),
         deleteActiveServerBtn: byId("deleteActiveServerBtn"),
@@ -1628,7 +1637,7 @@ function bindHistoryAndLogs() {
 }
 
 function bindTour() {
-    if (!els.tourShell || !els.tourNextBtn || !els.tourSkipBtn) return;
+    if (!els.tourShell) return;
 
     els.mascotHelpBtn?.addEventListener("click", () => openTour({ force: true }));
     els.tourModePicker?.addEventListener("click", (event) => {
@@ -1636,83 +1645,195 @@ function bindTour() {
         if (!button) return;
         startTourMode(button.dataset.tourMode === "detailed" ? "detailed" : "normal");
     });
-    els.tourNextBtn.addEventListener("click", () => {
-        if (tourIndex >= activeTourSteps.length - 1) {
-            closeTour({ remember: true });
-            return;
-        }
-        tourIndex += 1;
-        renderTourStep();
-    });
-    els.tourSkipBtn.addEventListener("click", () => closeTour({ remember: true }));
+    els.tourSkipBtn?.addEventListener("click", () => closeTour({ remember: true }));
     els.tourShell.addEventListener("click", (event) => {
         if (event.target === els.tourShell) closeTour({ remember: true });
     });
+
+    els.spotlightNextBtn?.addEventListener("click", advanceSpotlightTour);
+    els.spotlightSkipBtn?.addEventListener("click", () => closeTour({ remember: true }));
+
     document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && !els.tourShell.classList.contains("hidden")) {
-            closeTour({ remember: true });
-        }
+        if (event.key === "Escape") closeTour({ remember: true });
     });
 
-    if (!hasSeenTour()) {
+    const savedState = loadTourState();
+    if (savedState) {
+        activeTourSteps = savedState.mode === "detailed" ? detailedTourSteps : normalTourSteps;
+        tourIndex = savedState.index;
+        clearTourState();
+        window.setTimeout(() => showSpotlightStep(), 600);
+    } else if (!hasSeenTour()) {
         window.setTimeout(() => openTour(), 700);
     }
 }
 
 function hasSeenTour() {
-    try {
-        return window.localStorage.getItem(tourStorageKey) === "1";
-    } catch {
-        return true;
-    }
+    try { return window.localStorage.getItem(tourStorageKey) === "1"; }
+    catch { return true; }
 }
 
 function rememberTour() {
+    try { window.localStorage.setItem(tourStorageKey, "1"); }
+    catch { /* ignore */ }
+}
+
+function saveTourState(mode, index) {
+    try { window.localStorage.setItem(tourStateKey, JSON.stringify({ mode, index })); }
+    catch { /* ignore */ }
+}
+
+function loadTourState() {
     try {
-        window.localStorage.setItem(tourStorageKey, "1");
-    } catch {
-        // Ignore storage errors; the tour still works for this session.
-    }
+        const raw = window.localStorage.getItem(tourStateKey);
+        if (!raw) return null;
+        return JSON.parse(raw);
+    } catch { return null; }
+}
+
+function clearTourState() {
+    try { window.localStorage.removeItem(tourStateKey); }
+    catch { /* ignore */ }
 }
 
 function openTour({ force = false } = {}) {
     if (!els.tourShell) return;
     if (!force && hasSeenTour()) return;
-    tourIndex = 0;
-    activeTourSteps = [];
-    renderTourIntro();
     els.tourShell.classList.remove("hidden");
     window.setTimeout(() => els.tourModePicker?.querySelector("button")?.focus(), 0);
 }
 
 function closeTour({ remember = false } = {}) {
     if (remember) rememberTour();
+    clearTourState();
     els.tourShell?.classList.add("hidden");
-}
-
-function renderTourStep() {
-    if (!els.tourText || !els.tourProgress || !els.tourNextBtn) return;
-    els.tourModePicker?.classList.add("hidden");
-    els.tourNextBtn.classList.remove("hidden");
-    els.tourText.textContent = tr(activeTourSteps[tourIndex]);
-    els.tourNextBtn.textContent = tourIndex >= activeTourSteps.length - 1 ? tr("tour.finish") : tr("tour.next");
-    els.tourProgress.innerHTML = activeTourSteps
-        .map((_, index) => `<span class="${index === tourIndex ? "is-active" : ""}"></span>`)
-        .join("");
-}
-
-function renderTourIntro() {
-    if (!els.tourText || !els.tourProgress || !els.tourNextBtn) return;
-    els.tourText.textContent = tr("tour.choose_mode");
-    els.tourProgress.innerHTML = "";
-    els.tourModePicker?.classList.remove("hidden");
-    els.tourNextBtn.classList.add("hidden");
+    hideSpotlight();
 }
 
 function startTourMode(mode) {
-    activeTourSteps = mode === "detailed" ? detailedTourSteps : tourSteps;
+    activeTourSteps = mode === "detailed" ? detailedTourSteps : normalTourSteps;
     tourIndex = 0;
-    renderTourStep();
+    els.tourShell?.classList.add("hidden");
+
+    const step = activeTourSteps[tourIndex];
+    if (step && step.page !== page) {
+        saveTourState(mode, tourIndex);
+        window.location.href = step.url;
+        return;
+    }
+    showSpotlightStep();
+}
+
+function advanceSpotlightTour() {
+    tourIndex += 1;
+    if (tourIndex >= activeTourSteps.length) {
+        closeTour({ remember: true });
+        return;
+    }
+    const step = activeTourSteps[tourIndex];
+    if (step.page !== page) {
+        const mode = activeTourSteps === detailedTourSteps ? "detailed" : "normal";
+        saveTourState(mode, tourIndex);
+        window.location.href = step.url;
+        return;
+    }
+    showSpotlightStep();
+}
+
+function showSpotlightStep() {
+    const step = activeTourSteps[tourIndex];
+    if (!step) { closeTour({ remember: true }); return; }
+
+    const target = document.querySelector(step.selector) || document.querySelector(".page-shell");
+    if (!target) { closeTour({ remember: true }); return; }
+
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.setTimeout(() => positionSpotlight(target, step), 350);
+}
+
+function positionSpotlight(target, step) {
+    const rect = target.getBoundingClientRect();
+    const pad = 10;
+
+    // Highlight
+    const hl = els.spotlightHighlight;
+    if (hl) {
+        hl.style.left = (rect.left - pad) + "px";
+        hl.style.top = (rect.top - pad) + "px";
+        hl.style.width = (rect.width + pad * 2) + "px";
+        hl.style.height = (rect.height + pad * 2) + "px";
+        hl.classList.remove("hidden");
+    }
+
+    // Tooltip content
+    if (els.spotlightEyebrow) els.spotlightEyebrow.textContent = tr("tour.eyebrow");
+    if (els.spotlightTitle) els.spotlightTitle.textContent = tr(step.titleKey || "tour.eyebrow");
+    if (els.spotlightText) els.spotlightText.textContent = tr(step.textKey);
+    if (els.spotlightCounter) els.spotlightCounter.textContent = `${tourIndex + 1} / ${activeTourSteps.length}`;
+    if (els.spotlightNextBtn) els.spotlightNextBtn.textContent = tourIndex >= activeTourSteps.length - 1 ? tr("tour.finish") : tr("tour.next");
+
+    // Progress dots
+    if (els.spotlightProgress) {
+        els.spotlightProgress.innerHTML = activeTourSteps
+            .map((_, i) => `<span class="${i === tourIndex ? "is-active" : i < tourIndex ? "is-done" : ""}"></span>`)
+            .join("");
+    }
+
+    // Position tooltip
+    const tt = els.spotlightTooltip;
+    if (tt) {
+        tt.classList.remove("hidden");
+        const ttW = 380;
+        const ttH = tt.offsetHeight || 260;
+        let ttLeft, ttTop;
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceRight = window.innerWidth - rect.right;
+
+        if (spaceRight > ttW + 60) {
+            ttLeft = rect.right + 40;
+            ttTop = Math.max(20, rect.top + rect.height / 2 - ttH / 2);
+        } else if (rect.left > ttW + 60) {
+            ttLeft = rect.left - ttW - 40;
+            ttTop = Math.max(20, rect.top + rect.height / 2 - ttH / 2);
+        } else if (spaceBelow > ttH + 60) {
+            ttLeft = Math.max(20, rect.left + rect.width / 2 - ttW / 2);
+            ttTop = rect.bottom + 40;
+        } else {
+            ttLeft = Math.max(20, rect.left + rect.width / 2 - ttW / 2);
+            ttTop = Math.max(20, rect.top - ttH - 40);
+        }
+
+        ttTop = Math.min(ttTop, window.innerHeight - ttH - 20);
+        ttLeft = Math.min(ttLeft, window.innerWidth - ttW - 20);
+        tt.style.left = ttLeft + "px";
+        tt.style.top = ttTop + "px";
+
+        // Connector line
+        const cn = els.spotlightConnector;
+        if (cn) {
+            const hlCx = rect.left + rect.width / 2;
+            const hlCy = rect.top + rect.height / 2;
+            const ttCx = ttLeft + ttW / 2;
+            const ttCy = ttTop + (tt.offsetHeight || ttH) / 2;
+            const dx = ttCx - hlCx;
+            const dy = ttCy - hlCy;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx) * (180 / Math.PI) - 90;
+
+            cn.style.left = hlCx + "px";
+            cn.style.top = hlCy + "px";
+            cn.style.height = len + "px";
+            cn.style.transformOrigin = "top center";
+            cn.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+            cn.classList.remove("hidden");
+        }
+    }
+}
+
+function hideSpotlight() {
+    els.spotlightHighlight?.classList.add("hidden");
+    els.spotlightConnector?.classList.add("hidden");
+    els.spotlightTooltip?.classList.add("hidden");
 }
 
 function switchLogTab(tab) {

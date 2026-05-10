@@ -1,0 +1,128 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]:
+        - link "Homelab Discord Bot Manager" [ref=e5] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e10]: Homelab Discord Bot Manager
+        - generic [ref=e11]:
+          - generic [ref=e14]:
+            - strong [ref=e15]: Discord-Bot
+            - text: 127.0.0.1:8080
+          - generic [ref=e16]:
+            - button "Start" [ref=e17] [cursor=pointer]
+            - button "Restart" [ref=e19] [cursor=pointer]
+            - button "Stop" [ref=e21] [cursor=pointer]
+          - generic [ref=e23]:
+            - generic [ref=e24]:
+              - term [ref=e25]: Status
+              - definition [ref=e26]:
+                - generic [ref=e27]: Unknown
+            - generic [ref=e28]:
+              - term [ref=e29]: PID
+              - definition [ref=e30]: "-"
+            - generic [ref=e31]:
+              - term [ref=e32]: Uptime
+              - definition [ref=e33]: n/a
+          - paragraph
+        - navigation "Navigation" [ref=e34]:
+          - generic [ref=e35]:
+            - paragraph [ref=e36]: General
+            - generic [ref=e37]:
+              - link "Dashboard" [ref=e38] [cursor=pointer]:
+                - /url: /dashboard
+                - generic [ref=e40]: Dashboard
+              - link "Console" [ref=e41] [cursor=pointer]:
+                - /url: /console
+                - generic [ref=e43]: Console
+              - link "Settings" [ref=e44] [cursor=pointer]:
+                - /url: /settings
+                - generic [ref=e46]: Settings
+              - link "Activity" [ref=e47] [cursor=pointer]:
+                - /url: /activity
+                - generic [ref=e49]: Activity
+          - generic [ref=e50]:
+            - paragraph [ref=e51]: Management
+            - generic [ref=e52]:
+              - link "Files" [ref=e53] [cursor=pointer]:
+                - /url: /files
+                - generic [ref=e55]: Files
+              - link "Databases" [ref=e56] [cursor=pointer]:
+                - /url: /databases
+                - generic [ref=e58]: Databases
+              - link "Backups" [ref=e59] [cursor=pointer]:
+                - /url: /backups
+                - generic [ref=e61]: Backups
+              - link "Network" [ref=e62] [cursor=pointer]:
+                - /url: /network
+                - generic [ref=e64]: Network
+          - generic [ref=e65]:
+            - paragraph [ref=e66]: Configuration
+            - generic [ref=e67]:
+              - link "Schedules" [ref=e68] [cursor=pointer]:
+                - /url: /schedules
+                - generic [ref=e70]: Schedules
+              - link "Users" [ref=e71] [cursor=pointer]:
+                - /url: /users
+                - generic [ref=e73]: Users
+              - link "Startup" [ref=e74] [cursor=pointer]:
+                - /url: /startup
+                - generic [ref=e76]: Startup
+        - generic [ref=e77]:
+          - link "Account Local access only" [ref=e78] [cursor=pointer]:
+            - /url: /settings
+            - generic [ref=e80]:
+              - strong [ref=e81]: Account
+              - generic [ref=e82]: Local access only
+          - paragraph [ref=e84]: /data/workspace
+    - generic [ref=e85]:
+      - banner [ref=e86]:
+        - button "Quick focus" [ref=e87] [cursor=pointer]
+        - generic [ref=e89]:
+          - link "Discord" [ref=e90] [cursor=pointer]:
+            - /url: https://discord.com/developers/applications
+          - link "Support center" [ref=e91] [cursor=pointer]:
+            - /url: https://github.com/BastiLd/Docker-Discord-Bot
+      - main [ref=e92]:
+        - generic [ref=e93]:
+          - article [ref=e94]:
+            - generic [ref=e95]:
+              - checkbox "Select all" [ref=e98]
+              - generic [ref=e100]:
+                - generic [ref=e101]:
+                  - generic [ref=e102]: Search current directory
+                  - searchbox "Search current directory" [ref=e103]
+                - button "Delete" [disabled] [ref=e104]:
+                  - generic [ref=e105]: Delete
+                - button "Download selected" [disabled] [ref=e106]:
+                  - generic [ref=e107]: Download selected
+                - button "Move" [disabled] [ref=e108]:
+                  - generic [ref=e109]: Move
+                - button "Copy" [disabled] [ref=e110]:
+                  - generic [ref=e111]: Copy
+                - button "Up" [ref=e112] [cursor=pointer]:
+                  - generic [ref=e113]: Up
+                - button "Refresh" [ref=e114] [cursor=pointer]:
+                  - generic [ref=e115]: Refresh
+                - button "New folder" [ref=e116] [cursor=pointer]
+                - button "New file" [ref=e117] [cursor=pointer]
+                - button "Upload" [ref=e118] [cursor=pointer]:
+                  - generic [ref=e119]: Upload
+                - button "ZIP upload" [ref=e120] [cursor=pointer]:
+                  - generic [ref=e121]: ZIP upload
+            - generic [ref=e122]:
+              - strong [ref=e123]: Drag and drop
+              - generic [ref=e124]: /data/workspace
+          - article [ref=e125]:
+            - table [ref=e127]:
+              - rowgroup [ref=e128]:
+                - row "Name Type Size Modified Actions" [ref=e129]:
+                  - columnheader [ref=e130]
+                  - columnheader "Name" [ref=e131]
+                  - columnheader "Type" [ref=e132]
+                  - columnheader "Size" [ref=e133]
+                  - columnheader "Modified" [ref=e134]
+                  - columnheader "Actions" [ref=e135]
+              - rowgroup
+  - button "Open panel tour" [ref=e136] [cursor=pointer]:
+    - generic [ref=e140]: Tour

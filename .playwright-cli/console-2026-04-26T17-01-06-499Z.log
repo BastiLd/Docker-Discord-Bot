@@ -1,0 +1,6 @@
+[     307ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:8080/favicon.ico:0
+[   90087ms] [ERROR] Failed to load resource: net::ERR_EMPTY_RESPONSE @ http://127.0.0.1:8080/api/status:0
+[   90088ms] [ERROR] Failed to load resource: net::ERR_EMPTY_RESPONSE @ http://127.0.0.1:8080/api/metrics:0
+[   91290ms] [ERROR] Failed to load resource: net::ERR_EMPTY_RESPONSE @ http://127.0.0.1:8080/api/history:0
+[   92410ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:8080/ws/logs/system' failed: Connection closed before receiving a handshake response @ http://127.0.0.1:8080/static/js/app.js:1496
+[   92425ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:8080/ws/logs/bot' failed: Connection closed before receiving a handshake response @ http://127.0.0.1:8080/static/js/app.js:1496
