@@ -42,7 +42,9 @@ class GitDeployService:
         self._lock = asyncio.Lock()
 
     def get(self) -> dict:
-        return self._settings.model_dump(mode="json")
+        payload = self._settings.model_dump(mode="json")
+        payload["workspace_report"] = self.workspace_report()
+        return payload
 
     def update(self, payload: GitDeployUpdateRequest) -> dict:
         repo_url = self._normalize_repo_url(payload.repo_url)
@@ -106,13 +108,14 @@ class GitDeployService:
             if was_running and self._settings.restart_after_update:
                 await self.bot_manager.start()
 
+            report = self.workspace_report()
             self._settings = self._settings.model_copy(
                 update={
                     "last_commit": local_commit,
                     "last_remote_commit": local_commit,
                     "last_updated_at": isoformat(utc_now()),
                     "status": "imported",
-                    "message": "Repository importiert.",
+                    "message": self._message_with_report("Repository importiert.", report),
                 }
             )
             self._save()
@@ -144,13 +147,14 @@ class GitDeployService:
             if was_running and self._settings.restart_after_update:
                 await self.bot_manager.start()
 
+            report = self.workspace_report()
             self._settings = self._settings.model_copy(
                 update={
                     "last_commit": local_commit,
                     "last_remote_commit": local_commit,
                     "last_updated_at": isoformat(utc_now()),
                     "status": "updated",
-                    "message": "Repository aktualisiert.",
+                    "message": self._message_with_report("Repository aktualisiert.", report),
                 }
             )
             self._save()
@@ -213,6 +217,46 @@ class GitDeployService:
                 shutil.rmtree(item)
             else:
                 item.unlink()
+
+    def workspace_report(self) -> dict:
+        expected_entrypoint = self._expected_entrypoint()
+        missing: list[str] = []
+        warnings: list[str] = []
+        if expected_entrypoint and not (self.workspace_dir / expected_entrypoint).exists():
+            missing.append(expected_entrypoint)
+        if not (self.workspace_dir / "requirements.txt").exists():
+            warnings.append("requirements.txt fehlt. Abhängigkeiten können dann nicht automatisch installiert werden.")
+        if not (self.workspace_dir / ".env").exists():
+            warnings.append(".env fehlt. Das ist normal, wenn Secrets nicht im Repo liegen; lade sie hoch oder speichere Variablen in Startup.")
+        return {
+            "entrypoint": expected_entrypoint,
+            "missing": missing,
+            "warnings": warnings,
+            "ok": not missing,
+        }
+
+    def _expected_entrypoint(self) -> str:
+        try:
+            command = self.bot_manager.settings_service.get().start_command
+        except Exception:  # noqa: BLE001
+            command = "python bot.py"
+        parts = command.split()
+        for part in parts[1:] if parts and "python" in Path(parts[0]).name.lower() else parts:
+            if part.endswith(".py"):
+                parsed = urlparse(part)
+                return Path(parsed.path or part).name
+        return "bot.py"
+
+    @staticmethod
+    def _message_with_report(message: str, report: dict) -> str:
+        notes: list[str] = []
+        missing = report.get("missing") or []
+        warnings = report.get("warnings") or []
+        if missing:
+            notes.append(f"Fehlende benötigte Datei(en): {', '.join(missing)}.")
+        if warnings:
+            notes.extend(str(item) for item in warnings)
+        return " ".join([message, *notes]).strip()
 
     async def _local_commit(self) -> str:
         if not (self.workspace_dir / ".git").exists():

@@ -8,7 +8,7 @@ ghcr.io/bastild/docker-discord-bot
 
 Use one of these tags:
 
-- `0.1.2` for the fixed app-store style version.
+- `0.1.3` for the fixed app-store style version.
 - `main` for private testing where you want to pull the newest build after every push to `main`.
 
 ## Add It In The ZimaOS UI
@@ -17,7 +17,7 @@ In the custom app screen, enter:
 
 ```text
 Docker-Image: ghcr.io/bastild/docker-discord-bot
-Tag: 0.1.2
+Tag: 0.1.3
 Titel: Homelab Discord Bot Manager
 Icon URL: https://raw.githubusercontent.com/BastiLd/Docker-Discord-Bot/main/appstore/homelab-discord-bot-manager/icon.png
 Web UI protocol: http://
@@ -113,7 +113,7 @@ For manager app code changes:
 3. Wait for the GitHub Actions workflow `Docker Image` to finish.
 4. In ZimaOS, recreate/update the app and pull the same tag again.
 
-If you use tag `main`, the tag moves after every successful workflow run. If you use tag `0.1.2`, bump the version in `.github/workflows/docker-image.yml` and `appstore/homelab-discord-bot-manager/docker-compose.yml` when you want a real release.
+If you use tag `main`, the tag moves after every successful workflow run. If you use tag `0.1.3`, bump the version in `.github/workflows/docker-image.yml` and `appstore/homelab-discord-bot-manager/docker-compose.yml` when you want a real release.
 
 The manager also has an update hint in `Settings`. It only shows the current and latest available image tag. It does not update its own Docker container from inside the container.
 

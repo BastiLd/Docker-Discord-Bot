@@ -16,6 +16,19 @@
             <span>{{ ui["home.description"] }}</span>
             <input id="serverDescriptionInput" type="text" maxlength="280" placeholder="{{ ui['home.description_placeholder'] }}">
         </label>
+        <label class="field">
+            <span>{{ ui["git.repo_url"] }}</span>
+            <input id="serverGitRepoInput" type="url" maxlength="300" placeholder="https://github.com/user/repo">
+        </label>
+        <label class="field">
+            <span>{{ ui["git.branch"] }}</span>
+            <input id="serverGitBranchInput" type="text" maxlength="120" value="main">
+        </label>
+        <label class="checkbox-field">
+            <input id="serverGitImportInput" type="checkbox" checked>
+            <span>{{ ui["home.git_import_now"] }}</span>
+        </label>
+        <p class="surface-note">{{ ui["home.git_help"] }}</p>
         <button class="btn btn-primary" type="submit">{{ ui["home.create"] }}</button>
     </form>
 </section>

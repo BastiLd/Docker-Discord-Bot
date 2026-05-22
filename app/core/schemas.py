@@ -42,6 +42,9 @@ class GitDeployUpdateRequest(BaseModel):
 class CreateServerRequest(BaseModel):
     display_name: str = Field(default="Discord-Bot", min_length=1, max_length=80)
     description: str = Field(default="", max_length=280)
+    git_repo_url: str = Field(default="", max_length=300)
+    git_branch: str = Field(default="main", min_length=1, max_length=120)
+    git_import_now: bool = True
 
 
 class PanelMetaModel(BaseModel):

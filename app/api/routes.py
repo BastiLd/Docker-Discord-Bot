@@ -267,10 +267,30 @@ async def list_servers(request: Request) -> JSONResponse:
 @router.post("/api/servers")
 async def create_server(request: Request, payload: CreateServerRequest) -> JSONResponse:
     runtime = await _registry(request).create_server(payload.display_name, payload.description)
+    git_error = ""
+    git_deploy = runtime.git_deploy_service.get()
+    if payload.git_repo_url.strip():
+        try:
+            git_deploy = runtime.git_deploy_service.update(
+                GitDeployUpdateRequest(
+                    repo_url=payload.git_repo_url,
+                    branch=payload.git_branch,
+                    auto_update=False,
+                    install_requirements=True,
+                    restart_after_update=True,
+                )
+            )
+            if payload.git_import_now:
+                git_deploy = await runtime.git_deploy_service.import_repo()
+        except Exception as exc:  # noqa: BLE001
+            git_error = str(exc)
+            await runtime.log_service.write("system", f"Git-Import beim Erstellen fehlgeschlagen: {git_error}")
     response = JSONResponse(
         {
             "ok": True,
             "server": runtime.record.model_dump(mode="json"),
+            "git_deploy": git_deploy,
+            "git_error": git_error,
         },
         status_code=201,
     )

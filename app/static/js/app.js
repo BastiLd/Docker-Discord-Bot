@@ -209,6 +209,9 @@ function bindHomePage() {
         createServerForm: byId("createServerForm"),
         serverNameInput: byId("serverNameInput"),
         serverDescriptionInput: byId("serverDescriptionInput"),
+        serverGitRepoInput: byId("serverGitRepoInput"),
+        serverGitBranchInput: byId("serverGitBranchInput"),
+        serverGitImportInput: byId("serverGitImportInput"),
     });
 
     els.createServerForm?.addEventListener("submit", async (event) => {
@@ -221,14 +224,18 @@ function bindHomePage() {
         }
 
         try {
-            await api("/api/servers", {
+            const payload = await api("/api/servers", {
                 method: "POST",
                 body: JSON.stringify({
                     display_name: displayName,
                     description: (els.serverDescriptionInput?.value || "").trim(),
+                    git_repo_url: (els.serverGitRepoInput?.value || "").trim(),
+                    git_branch: (els.serverGitBranchInput?.value || "main").trim(),
+                    git_import_now: Boolean(els.serverGitImportInput?.checked),
                 }),
             });
             showToastKey("toast.server_created");
+            if (payload.git_error) showToast(payload.git_error, "error");
             window.location.href = "/dashboard";
         } catch (error) {
             showToast(error.message, "error");
@@ -410,10 +417,24 @@ function bindSettingsPage() {
         appUpdateCurrentTag: byId("appUpdateCurrentTag"),
         appUpdateLatestTag: byId("appUpdateLatestTag"),
         appUpdateMessage: byId("appUpdateMessage"),
+        gitRepoInput: byId("gitRepoInput"),
+        gitBranchInput: byId("gitBranchInput"),
+        gitAutoUpdateInput: byId("gitAutoUpdateInput"),
+        gitInstallDepsInput: byId("gitInstallDepsInput"),
+        gitRestartInput: byId("gitRestartInput"),
+        gitStatusText: byId("gitStatusText"),
+        gitLocalCommitText: byId("gitLocalCommitText"),
+        gitRemoteCommitText: byId("gitRemoteCommitText"),
+        gitMessageText: byId("gitMessageText"),
+        checkGitBtn: byId("checkGitBtn"),
+        importGitBtn: byId("importGitBtn"),
+        updateGitBtn: byId("updateGitBtn"),
     });
 
     els.savePanelBtn?.addEventListener("click", savePanelMeta);
     els.checkAppUpdateBtn?.addEventListener("click", () => refreshAppUpdate({ silent: false }));
+    bindGitDeployButtons();
+    applyGitDeployToForm();
     refreshAppUpdate({ silent: true });
 }
 
@@ -614,6 +635,19 @@ function bindStartupPage() {
     els.saveSettingsBtn?.addEventListener("click", saveSettings);
     els.refreshStartupBtn?.addEventListener("click", refreshStartupPage);
     els.installDepsBtn?.addEventListener("click", () => startTask("/api/tasks/install-deps", {}));
+    bindGitDeployButtons();
+    els.installPackageBtn?.addEventListener("click", () => {
+        const packageName = els.packageInput?.value.trim() || "";
+        if (!packageName) {
+            showToastKey("error.package_required", {}, "error");
+            return;
+        }
+        startTask("/api/tasks/install-package", { package: packageName });
+        els.packageInput.value = "";
+    });
+}
+
+function bindGitDeployButtons() {
     els.checkGitBtn?.addEventListener("click", async () => {
         if (!(await saveGitDeploy({ silent: true }))) return;
         await runGitAction("/api/git-deploy/check", "toast.git_checked");
@@ -629,15 +663,6 @@ function bindStartupPage() {
         if (!window.confirm(tr("git.update_confirm"))) return;
         await runGitAction("/api/git-deploy/update", "toast.git_updated");
         await refreshFilesIfVisible();
-    });
-    els.installPackageBtn?.addEventListener("click", () => {
-        const packageName = els.packageInput?.value.trim() || "";
-        if (!packageName) {
-            showToastKey("error.package_required", {}, "error");
-            return;
-        }
-        startTask("/api/tasks/install-package", { package: packageName });
-        els.packageInput.value = "";
     });
 }
 

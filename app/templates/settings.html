@@ -99,6 +99,55 @@
         </div>
     </article>
 
+    <article class="kb-card">
+        <h2 class="card-title">{{ ui["git.heading"] }}</h2>
+        <div class="field-grid field-grid-single">
+            <label class="field">
+                <span>{{ ui["git.repo_url"] }}</span>
+                <input id="gitRepoInput" type="url" placeholder="https://github.com/user/repo">
+            </label>
+            <label class="field">
+                <span>{{ ui["git.branch"] }}</span>
+                <input id="gitBranchInput" type="text" placeholder="main">
+            </label>
+            <label class="checkbox-field">
+                <input id="gitAutoUpdateInput" type="checkbox">
+                <span>{{ ui["git.auto_update"] }}</span>
+            </label>
+            <label class="checkbox-field">
+                <input id="gitInstallDepsInput" type="checkbox">
+                <span>{{ ui["git.install_deps"] }}</span>
+            </label>
+            <label class="checkbox-field">
+                <input id="gitRestartInput" type="checkbox">
+                <span>{{ ui["git.restart_after_update"] }}</span>
+            </label>
+        </div>
+        <dl class="info-table compact-table">
+            <div>
+                <dt>{{ ui["git.status"] }}</dt>
+                <dd><span class="code-pill" id="gitStatusText">{{ ui["common.none"] }}</span></dd>
+            </div>
+            <div>
+                <dt>{{ ui["git.local_commit"] }}</dt>
+                <dd><span class="code-pill" id="gitLocalCommitText">-</span></dd>
+            </div>
+            <div>
+                <dt>{{ ui["git.remote_commit"] }}</dt>
+                <dd><span class="code-pill" id="gitRemoteCommitText">-</span></dd>
+            </div>
+            <div>
+                <dt>{{ ui["git.message"] }}</dt>
+                <dd><span id="gitMessageText">{{ ui["common.none"] }}</span></dd>
+            </div>
+        </dl>
+        <div class="card-actions card-actions-end">
+            <button class="btn btn-secondary" id="checkGitBtn" type="button">{{ ui["git.check"] }}</button>
+            <button class="btn btn-secondary" id="importGitBtn" type="button">{{ ui["git.import"] }}</button>
+            <button class="btn btn-primary" id="updateGitBtn" type="button">{{ ui["git.update"] }}</button>
+        </div>
+    </article>
+
     <article class="kb-card settings-reinstall">
         <h2 class="card-title">Reinstall Server</h2>
         <p class="surface-note">
