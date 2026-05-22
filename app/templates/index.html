@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ app_name }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}?v=7">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}?v=8">
 </head>
 <body>
     <div class="app-shell">
@@ -290,6 +290,6 @@
             authEnabled: {{ auth_enabled | tojson }}
         };
     </script>
-    <script src="{{ url_for('static', path='/js/app.js') }}?v=7" defer></script>
+    <script src="{{ url_for('static', path='/js/app.js') }}?v=8" defer></script>
 </body>
 </html>

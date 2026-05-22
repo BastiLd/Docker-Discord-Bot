@@ -126,6 +126,18 @@ class DatabaseCellUpdateRequest(BaseModel):
     value: str | None = None
 
 
+class DatabaseRowCreateRequest(BaseModel):
+    path: str
+    table: str = Field(min_length=1, max_length=200)
+    values: dict[str, str | None] = Field(default_factory=dict)
+
+
+class DatabaseRowDeleteRequest(BaseModel):
+    path: str
+    table: str = Field(min_length=1, max_length=200)
+    rowid: int
+
+
 class DatabaseQueryRequest(BaseModel):
     path: str
     sql: str = Field(min_length=1, max_length=10000)

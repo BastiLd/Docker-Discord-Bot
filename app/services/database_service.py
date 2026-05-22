@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import csv
 import sqlite3
+from io import StringIO
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -87,8 +89,7 @@ class DatabaseService:
         db_path = self._resolve_database(relative_path)
         with self._connect(db_path) as connection:
             table_type = self._require_table(connection, table)
-            if table_type != "table":
-                raise ValueError("Views können nicht direkt bearbeitet werden.")
+            self._require_editable_table(table_type)
             column_names = {item["name"] for item in self._columns(connection, table)}
             if column not in column_names:
                 raise ValueError("Spalte wurde nicht gefunden.")
@@ -102,6 +103,66 @@ class DatabaseService:
                 raise ValueError("Zeile wurde nicht gefunden.")
             connection.commit()
         return self.table_rows(relative_path, table)
+
+    def insert_row(self, relative_path: str, table: str, values: dict[str, str | None]) -> dict:
+        db_path = self._resolve_database(relative_path)
+        with self._connect(db_path) as connection:
+            table_type = self._require_table(connection, table)
+            self._require_editable_table(table_type)
+            columns = self._columns(connection, table)
+            editable_columns = [column for column in columns if not column["primary_key"]]
+            column_names = {column["name"] for column in editable_columns}
+            clean_values = {
+                key: (None if value == "" else value)
+                for key, value in (values or {}).items()
+                if key in column_names
+            }
+            if not clean_values:
+                clean_values = {column["name"]: None for column in editable_columns if not column["notnull"]}
+            if not clean_values:
+                raise ValueError("Keine einfügbaren Spalten gefunden.")
+
+            quoted_table = self._quote_identifier(table)
+            quoted_columns = ", ".join(self._quote_identifier(column) for column in clean_values)
+            placeholders = ", ".join("?" for _ in clean_values)
+            connection.execute(
+                f"INSERT INTO {quoted_table} ({quoted_columns}) VALUES ({placeholders})",
+                list(clean_values.values()),
+            )
+            connection.commit()
+        return self.table_rows(relative_path, table)
+
+    def delete_row(self, relative_path: str, table: str, rowid: int) -> dict:
+        db_path = self._resolve_database(relative_path)
+        with self._connect(db_path) as connection:
+            table_type = self._require_table(connection, table)
+            self._require_editable_table(table_type)
+            quoted_table = self._quote_identifier(table)
+            cursor = connection.execute(f"DELETE FROM {quoted_table} WHERE rowid = ?", (int(rowid),))
+            if cursor.rowcount == 0:
+                raise ValueError("Zeile wurde nicht gefunden.")
+            connection.commit()
+        return self.table_rows(relative_path, table)
+
+    def export_csv(self, relative_path: str, table: str) -> dict:
+        db_path = self._resolve_database(relative_path)
+        with self._connect(db_path, readonly=True) as connection:
+            self._require_table(connection, table)
+            columns = self._columns(connection, table)
+            quoted_table = self._quote_identifier(table)
+            rows = connection.execute(f"SELECT * FROM {quoted_table}").fetchall()
+
+        output = StringIO()
+        writer = csv.writer(output)
+        headers = [column["name"] for column in columns]
+        writer.writerow(headers)
+        for row in rows:
+            writer.writerow([row[column] for column in headers])
+        return {
+            "filename": f"{Path(relative_path).stem}-{table}.csv",
+            "content": output.getvalue(),
+            "row_count": len(rows),
+        }
 
     def query(self, relative_path: str, sql: str) -> dict:
         db_path = self._resolve_database(relative_path)
@@ -156,6 +217,11 @@ class DatabaseService:
         if not row:
             raise ValueError("Tabelle wurde nicht gefunden.")
         return str(row["type"])
+
+    @staticmethod
+    def _require_editable_table(table_type: str) -> None:
+        if table_type != "table":
+            raise ValueError("Views können nicht direkt bearbeitet werden.")
 
     def _columns(self, connection: sqlite3.Connection, table: str) -> list[dict[str, Any]]:
         quoted_table = self._quote_identifier(table)

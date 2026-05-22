@@ -54,5 +54,42 @@
         <div class="database-query-result" id="databaseQueryResult"></div>
     </article>
 </section>
+
+<div class="modal-shell hidden" id="databaseValueModal">
+    <div class="modal-card surface database-value-card">
+        <div class="surface-header modal-header">
+            <div>
+                <p class="section-label" id="databaseValueEyebrow">{{ ui["databases.cell_value"] }}</p>
+                <h3 id="databaseValueTitle">{{ ui["databases.cell_value"] }}</h3>
+            </div>
+            <button class="btn btn-secondary btn-square" type="button" id="databaseValueCloseBtn">x</button>
+        </div>
+        <pre class="database-value-pre" id="databaseValueContent"></pre>
+        <div class="toolbar-actions modal-actions">
+            <button class="btn btn-secondary" type="button" id="databaseValueCopyBtn">{{ ui["common.copy"] }}</button>
+            <button class="btn btn-primary" type="button" id="databaseValueDoneBtn">{{ ui["common.close"] }}</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-shell hidden" id="databaseRowModal">
+    <div class="modal-card surface database-row-card">
+        <div class="surface-header modal-header">
+            <div>
+                <p class="section-label">{{ ui["databases.add_row"] }}</p>
+                <h3 id="databaseRowTitle">{{ ui["databases.add_row"] }}</h3>
+            </div>
+            <button class="btn btn-secondary btn-square" type="button" id="databaseRowCloseBtn">x</button>
+        </div>
+        <p class="surface-note">{{ ui["databases.add_row_help"] }}</p>
+        <form class="modal-form database-row-form" id="databaseRowForm">
+            <div class="database-row-fields" id="databaseRowFields"></div>
+            <div class="toolbar-actions modal-actions">
+                <button class="btn btn-secondary" type="button" id="databaseRowCancelBtn">{{ ui["common.cancel"] }}</button>
+                <button class="btn btn-primary" type="submit">{{ ui["databases.add_row"] }}</button>
+            </div>
+        </form>
+    </div>
+</div>
 </section>
 {% endblock %}

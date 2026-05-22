@@ -20,6 +20,7 @@ const state = {
     activeTaskId: null,
     activeTaskOutput: "",
     consoleFilter: "all",
+    currentDatabaseValue: "",
     isCreatingServer: false,
     tasks: [],
     logTab: "bot",
@@ -444,12 +445,12 @@ async function refreshMetrics({ silent = false } = {}) {
 
 function renderMetrics(payload = {}) {
     const currentState = state.status?.state || "unknown";
-    setText(els.metricCpuPrimary, `${payload.cpu_percent ?? 0}%`);
+    setText(els.metricCpuPrimary, `${payload.bot_cpu_percent ?? 0}%`);
     setText(els.metricCpuSecondary, tr(`status.${currentState}`));
-    setText(els.metricMemoryPrimary, formatUsage(payload.memory_used_human, payload.memory_total_human));
-    setText(els.metricMemorySecondary, payload.memory_total_bytes ? tr("dashboard.memory") : tr("common.none"));
-    setText(els.metricDiskPrimary, formatUsage(payload.disk_used_human, payload.disk_total_human));
-    setText(els.metricDiskSecondary, tr("dashboard.disk"));
+    setText(els.metricMemoryPrimary, payload.bot_memory_used_human || tr("common.none"));
+    setText(els.metricMemorySecondary, payload.memory_total_bytes ? `${tr("dashboard.host_memory")}: ${formatUsage(payload.memory_used_human, payload.memory_total_human)}` : tr("common.none"));
+    setText(els.metricDiskPrimary, payload.workspace_used_human || tr("common.none"));
+    setText(els.metricDiskSecondary, `${tr("dashboard.host_disk")}: ${formatUsage(payload.disk_used_human, payload.disk_total_human)}`);
 }
 
 function formatUsage(used, total) {
@@ -1108,6 +1109,18 @@ function bindDatabasesPage() {
         databaseQueryInput: byId("databaseQueryInput"),
         runDatabaseQueryBtn: byId("runDatabaseQueryBtn"),
         databaseQueryResult: byId("databaseQueryResult"),
+        databaseValueModal: byId("databaseValueModal"),
+        databaseValueTitle: byId("databaseValueTitle"),
+        databaseValueContent: byId("databaseValueContent"),
+        databaseValueCloseBtn: byId("databaseValueCloseBtn"),
+        databaseValueDoneBtn: byId("databaseValueDoneBtn"),
+        databaseValueCopyBtn: byId("databaseValueCopyBtn"),
+        databaseRowModal: byId("databaseRowModal"),
+        databaseRowTitle: byId("databaseRowTitle"),
+        databaseRowForm: byId("databaseRowForm"),
+        databaseRowFields: byId("databaseRowFields"),
+        databaseRowCloseBtn: byId("databaseRowCloseBtn"),
+        databaseRowCancelBtn: byId("databaseRowCancelBtn"),
     });
 
     els.refreshDatabasesBtn?.addEventListener("click", () => refreshDatabases());
@@ -1123,7 +1136,20 @@ function bindDatabasesPage() {
     els.databaseTableSelect?.addEventListener("change", () => openDatabaseTable(els.databaseTableSelect.value));
     els.reloadTableBtn?.addEventListener("click", () => openDatabaseTable(state.activeDbTable));
     els.databaseTableWrap?.addEventListener("change", handleDatabaseCellChange);
+    els.databaseTableWrap?.addEventListener("click", handleDatabaseTableClick);
     els.databaseQueryForm?.addEventListener("submit", runDatabaseQuery);
+    els.databaseValueCloseBtn?.addEventListener("click", closeDatabaseValueModal);
+    els.databaseValueDoneBtn?.addEventListener("click", closeDatabaseValueModal);
+    els.databaseValueModal?.addEventListener("click", (event) => {
+        if (event.target === els.databaseValueModal) closeDatabaseValueModal();
+    });
+    els.databaseValueCopyBtn?.addEventListener("click", copyDatabaseValue);
+    els.databaseRowCloseBtn?.addEventListener("click", closeDatabaseRowModal);
+    els.databaseRowCancelBtn?.addEventListener("click", closeDatabaseRowModal);
+    els.databaseRowModal?.addEventListener("click", (event) => {
+        if (event.target === els.databaseRowModal) closeDatabaseRowModal();
+    });
+    els.databaseRowForm?.addEventListener("submit", createDatabaseRow);
     refreshDatabases();
 }
 
@@ -1229,13 +1255,19 @@ function renderDatabaseRows(payload) {
     const countText = tr("databases.rows", { count: payload.total ?? rows.length });
     const readonlyText = tableMeta?.editable ? "" : `<p class="surface-note">${escapeHtml(tr("databases.readonly"))}</p>`;
     const emptyRows = `<tr><td colspan="${columns.length + 1}"><div class="empty-state database-table-empty">${escapeHtml(tr("databases.table_empty"))}</div></td></tr>`;
+    const actionHeader = tableMeta?.editable ? `<th>${escapeHtml(tr("common.edit"))}</th>` : "";
+    const actionColspan = columns.length + (tableMeta?.editable ? 2 : 1);
     els.databaseTableWrap.innerHTML = `
         <div class="database-table-meta">
             <div>
                 <strong>${escapeHtml(payload.table)}</strong>
                 <span>${escapeHtml(tableMeta?.type || "table")}</span>
             </div>
-            <span>${escapeHtml(countText)}</span>
+            <div class="toolbar-actions database-table-actions">
+                <span>${escapeHtml(countText)}</span>
+                ${tableMeta?.editable ? `<button class="btn btn-secondary" type="button" data-db-action="add-row">${escapeHtml(tr("databases.add_row"))}</button>` : ""}
+                <button class="btn btn-secondary" type="button" data-db-action="export-csv">${escapeHtml(tr("databases.export_csv"))}</button>
+            </div>
         </div>
         ${readonlyText}
         <p class="surface-note database-scroll-hint">${escapeHtml(tr("databases.scroll_hint"))}</p>
@@ -1245,6 +1277,7 @@ function renderDatabaseRows(payload) {
                     <tr>
                         <th>rowid</th>
                         ${columns.map((column) => `<th>${escapeHtml(column.name)}<small>${escapeHtml(column.type || "")}</small></th>`).join("")}
+                        ${actionHeader}
                     </tr>
                 </thead>
                 <tbody>
@@ -1252,8 +1285,9 @@ function renderDatabaseRows(payload) {
                         <tr>
                             <td><span class="code-pill">${escapeHtml(row.__rowid__)}</span></td>
                             ${columns.map((column) => renderDatabaseCell(row, column, Boolean(tableMeta?.editable))).join("")}
+                            ${tableMeta?.editable ? `<td><button class="file-action-link danger-link" type="button" data-db-action="delete-row" data-rowid="${escapeHtml(row.__rowid__)}">${escapeHtml(tr("databases.delete_row"))}</button></td>` : ""}
                         </tr>
-                    `).join("") || emptyRows}
+                    `).join("") || emptyRows.replace(`colspan="${columns.length + 1}"`, `colspan="${actionColspan}"`)}
                 </tbody>
             </table>
         </div>
@@ -1265,17 +1299,27 @@ function renderDatabaseCell(row, column, editable) {
     const text = value === null || value === undefined ? "" : String(value);
     if (!editable || column.primary_key) {
         const display = value === null || value === undefined ? tr("databases.null_value") : compactDatabaseValue(text);
-        return `<td title="${escapeHtml(text)}">${escapeHtml(display)}</td>`;
+        return `<td title="${escapeHtml(text)}">${renderDatabaseValueButton(display, text, column.name)}</td>`;
     }
     return `
         <td>
-            <input class="database-cell-input" type="text"
+            <div class="database-cell-editor">
+                <input class="database-cell-input" type="text"
                 value="${escapeHtml(text)}"
                 data-rowid="${escapeHtml(row.__rowid__)}"
                 data-column="${escapeHtml(column.name)}"
                 data-original="${escapeHtml(text)}">
+                ${renderDatabaseValueButton("...", text, column.name, true)}
+            </div>
         </td>
     `;
+}
+
+function renderDatabaseValueButton(display, value, column, iconOnly = false) {
+    const text = value === null || value === undefined ? "" : String(value);
+    const looksUseful = text.length > 80 || /^[\[{]/.test(text.trim());
+    if (!looksUseful) return escapeHtml(display);
+    return `<button class="database-value-link ${iconOnly ? "is-icon" : ""}" type="button" data-db-action="view-value" data-column="${escapeHtml(column)}" data-value="${escapeHtml(text)}">${escapeHtml(iconOnly ? tr("databases.view_value") : display)}</button>`;
 }
 
 function compactDatabaseValue(value) {
@@ -1304,6 +1348,125 @@ async function handleDatabaseCellChange(event) {
     } catch (error) {
         input.value = input.dataset.original || "";
         showToast(error.message, "error");
+    }
+}
+
+function handleDatabaseTableClick(event) {
+    const target = event.target.closest("[data-db-action]");
+    if (!target) return;
+    const action = target.dataset.dbAction;
+    if (action === "add-row") {
+        openDatabaseRowModal();
+    } else if (action === "delete-row") {
+        deleteDatabaseRow(target.dataset.rowid);
+    } else if (action === "export-csv") {
+        exportDatabaseCsv();
+    } else if (action === "view-value") {
+        openDatabaseValueModal(target.dataset.value || "", target.dataset.column || "");
+    }
+}
+
+function openDatabaseRowModal() {
+    const tableMeta = (state.databaseInspect?.tables || []).find((item) => item.name === state.activeDbTable);
+    if (!tableMeta?.editable || !els.databaseRowModal || !els.databaseRowFields) return;
+    const editableColumns = (state.databaseRows?.columns || []).filter((column) => !column.primary_key);
+    els.databaseRowTitle.textContent = `${tr("databases.add_row")}: ${state.activeDbTable}`;
+    els.databaseRowFields.innerHTML = editableColumns.map((column) => `
+        <label class="field">
+            <span>${escapeHtml(column.name)}${column.notnull ? " *" : ""}</span>
+            <textarea rows="2" data-column="${escapeHtml(column.name)}" placeholder="${escapeHtml(column.type || "")}"></textarea>
+        </label>
+    `).join("");
+    els.databaseRowModal.classList.remove("hidden");
+}
+
+function closeDatabaseRowModal() {
+    els.databaseRowModal?.classList.add("hidden");
+    els.databaseRowForm?.reset();
+}
+
+async function createDatabaseRow(event) {
+    event.preventDefault();
+    if (!state.activeDatabase || !state.activeDbTable || !els.databaseRowFields) return;
+    const values = {};
+    els.databaseRowFields.querySelectorAll("[data-column]").forEach((input) => {
+        values[input.dataset.column] = input.value;
+    });
+    try {
+        const payload = await api("/api/databases/row", {
+            method: "POST",
+            body: JSON.stringify({ path: state.activeDatabase, table: state.activeDbTable, values }),
+        });
+        state.databaseRows = payload;
+        closeDatabaseRowModal();
+        renderDatabaseRows(payload);
+        showToastKey("databases.row_added");
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+async function deleteDatabaseRow(rowid) {
+    if (!state.activeDatabase || !state.activeDbTable || !rowid) return;
+    if (!window.confirm(tr("databases.delete_row_confirm"))) return;
+    try {
+        const payload = await api("/api/databases/row", {
+            method: "DELETE",
+            body: JSON.stringify({ path: state.activeDatabase, table: state.activeDbTable, rowid: Number(rowid) }),
+        });
+        state.databaseRows = payload;
+        renderDatabaseRows(payload);
+        showToastKey("databases.row_deleted");
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+async function exportDatabaseCsv() {
+    if (!state.activeDatabase || !state.activeDbTable) return;
+    try {
+        const payload = await api(`/api/databases/export?path=${encodeURIComponent(state.activeDatabase)}&table=${encodeURIComponent(state.activeDbTable)}`);
+        const blob = new Blob([payload.content || ""], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = payload.filename || `${state.activeDbTable}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        showToastKey("databases.csv_exported");
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+function openDatabaseValueModal(value, column) {
+    state.currentDatabaseValue = value || "";
+    if (els.databaseValueTitle) els.databaseValueTitle.textContent = column || tr("databases.cell_value");
+    if (els.databaseValueContent) els.databaseValueContent.textContent = prettyDatabaseValue(state.currentDatabaseValue);
+    els.databaseValueModal?.classList.remove("hidden");
+}
+
+function closeDatabaseValueModal() {
+    els.databaseValueModal?.classList.add("hidden");
+}
+
+async function copyDatabaseValue() {
+    try {
+        await navigator.clipboard.writeText(state.currentDatabaseValue || "");
+        showToastKey("databases.copied");
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+function prettyDatabaseValue(value) {
+    const text = String(value ?? "");
+    try {
+        return JSON.stringify(JSON.parse(text), null, 2);
+    } catch {
+        return text;
     }
 }
 

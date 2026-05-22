@@ -16,6 +16,8 @@ from app.core.schemas import (
     CreateEntryRequest,
     DatabaseCellUpdateRequest,
     DatabaseQueryRequest,
+    DatabaseRowCreateRequest,
+    DatabaseRowDeleteRequest,
     DeleteEntriesRequest,
     DownloadSelectionRequest,
     ExtractArchiveRequest,
@@ -339,7 +341,9 @@ async def get_history(request: Request) -> JSONResponse:
 
 @router.get("/api/metrics")
 async def get_metrics(request: Request) -> JSONResponse:
-    return JSONResponse(_services(request).system_metrics_service.snapshot())
+    runtime = _services(request)
+    status = await runtime.bot_manager.status()
+    return JSONResponse(runtime.system_metrics_service.snapshot(status.get("pid")))
 
 
 @router.get("/api/panel-meta")
@@ -482,6 +486,33 @@ async def read_database_table(
 async def update_database_cell(request: Request, payload: DatabaseCellUpdateRequest) -> JSONResponse:
     try:
         result = _services(request).database_service.update_cell(payload.path, payload.table, payload.rowid, payload.column, payload.value)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse(result)
+
+
+@router.post("/api/databases/row")
+async def create_database_row(request: Request, payload: DatabaseRowCreateRequest) -> JSONResponse:
+    try:
+        result = _services(request).database_service.insert_row(payload.path, payload.table, payload.values)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse(result)
+
+
+@router.delete("/api/databases/row")
+async def delete_database_row(request: Request, payload: DatabaseRowDeleteRequest) -> JSONResponse:
+    try:
+        result = _services(request).database_service.delete_row(payload.path, payload.table, payload.rowid)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse(result)
+
+
+@router.get("/api/databases/export")
+async def export_database_table(request: Request, path: str, table: str) -> JSONResponse:
+    try:
+        result = _services(request).database_service.export_csv(path, table)
     except Exception as exc:  # noqa: BLE001
         _raise_bad_request(exc)
     return JSONResponse(result)

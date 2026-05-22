@@ -2282,6 +2282,11 @@ body[data-page="databases"] {
     flex: 0 0 auto;
 }
 
+.database-table-actions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
 .database-scroll-hint {
     margin: -2px 0 10px;
 }
@@ -2333,6 +2338,41 @@ body[data-page="databases"] {
     outline: 2px solid rgba(242, 90, 41, 0.45);
 }
 
+.database-cell-editor {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.database-value-link {
+    max-width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-main);
+    font: inherit;
+    text-align: left;
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 255, 255, 0.28);
+    cursor: pointer;
+}
+
+.database-value-link.is-icon {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-soft);
+    text-align: center;
+    text-decoration: none;
+}
+
+.danger-link {
+    color: #ff9da4;
+}
+
 .database-query-card {
     display: grid;
     gap: 12px;
@@ -2350,6 +2390,31 @@ body[data-page="databases"] {
 
 .database-table-empty {
     min-height: 96px;
+}
+
+.database-value-card,
+.database-row-card {
+    width: min(900px, 100%);
+}
+
+.database-value-pre {
+    max-height: min(620px, calc(100vh - 240px));
+    overflow: auto;
+    padding: 16px;
+    border-radius: var(--radius-control);
+    background: rgba(4, 7, 22, 0.74);
+    color: var(--text-main);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.database-row-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    max-height: min(560px, calc(100vh - 290px));
+    overflow: auto;
+    padding-right: 4px;
 }
 
 .activity-intro {
@@ -3077,7 +3142,8 @@ body[data-page="console"] .mascot-help-button {
 
     .database-page-heading,
     .database-main-header,
-    .database-table-picker {
+    .database-table-picker,
+    .database-row-fields {
         grid-template-columns: 1fr;
         align-items: stretch;
     }
