@@ -1,9 +1,14 @@
-﻿__pycache__/
+__pycache__/
 *.py[cod]
+.codex-pycache/
+.codex-test/
+.uvicorn*.log
 .venv/
 .env
 !.env.example
 .git/
+data/config/git_deploy.json
+data/config/servers/*/config/git_deploy.json
 data/logs/*.log
 data/venv/
 app/static/.DS_Store

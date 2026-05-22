@@ -17,6 +17,28 @@ class BotSettingsModel(BaseModel):
     python_runtime: str = Field(default="3.14", pattern=r"^3\.(12|13|14)$")
 
 
+class GitDeploySettingsModel(BaseModel):
+    repo_url: str = Field(default="", max_length=300)
+    branch: str = Field(default="main", min_length=1, max_length=120)
+    auto_update: bool = False
+    install_requirements: bool = True
+    restart_after_update: bool = True
+    last_commit: str = Field(default="", max_length=80)
+    last_remote_commit: str = Field(default="", max_length=80)
+    last_checked_at: str | None = None
+    last_updated_at: str | None = None
+    status: str = Field(default="not_configured", max_length=60)
+    message: str = Field(default="", max_length=1000)
+
+
+class GitDeployUpdateRequest(BaseModel):
+    repo_url: str = Field(default="", max_length=300)
+    branch: str = Field(default="main", min_length=1, max_length=120)
+    auto_update: bool = False
+    install_requirements: bool = True
+    restart_after_update: bool = True
+
+
 class CreateServerRequest(BaseModel):
     display_name: str = Field(default="Discord-Bot", min_length=1, max_length=80)
     description: str = Field(default="", max_length=280)

@@ -1,8 +1,15 @@
-﻿FROM python:3.12-slim
+FROM python:3.12-slim
+
+ARG APP_VERSION=0.1.1
+ARG APP_IMAGE_TAG=0.1.1
+ARG APP_BUILD_SHA=unknown
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
+    APP_VERSION=${APP_VERSION} \
+    APP_IMAGE_TAG=${APP_IMAGE_TAG} \
+    APP_BUILD_SHA=${APP_BUILD_SHA} \
     APP_HOST=0.0.0.0 \
     APP_PORT=8080 \
     WORKSPACE_DIR=/data/workspace \
@@ -12,6 +19,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     VENV_DIR=/data/venv
 
 WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
 RUN python -m pip install --upgrade pip && python -m pip install -r requirements.txt

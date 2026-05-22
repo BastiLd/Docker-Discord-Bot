@@ -17,6 +17,7 @@ from app.core.schemas import (
     DeleteEntriesRequest,
     DownloadSelectionRequest,
     ExtractArchiveRequest,
+    GitDeployUpdateRequest,
     InstallPackageRequest,
     PanelMetaUpdateModel,
     RenameEntryRequest,
@@ -25,6 +26,7 @@ from app.core.schemas import (
     SaveScheduleRequest,
     TransferEntriesRequest,
 )
+from app.services.app_update_service import AppUpdateService
 
 
 router = APIRouter()
@@ -92,7 +94,7 @@ def _registry(request: Request):
 
 
 def _active_server_id(request: Request) -> str | None:
-    return request.cookies.get(ACTIVE_SERVER_COOKIE)
+    return request.query_params.get("server_id") or request.headers.get("x-server-id") or request.cookies.get(ACTIVE_SERVER_COOKIE)
 
 
 def _services(request: Request):
@@ -141,6 +143,7 @@ def _page_context(request: Request, *, active_page: str) -> dict[str, Any]:
     settings = state.settings_service.get()
     env_entries = state.env_service.list_entries()
     panel_meta = state.panel_meta_service.get()
+    git_deploy = state.git_deploy_service.get()
     servers = _registry(request).list_records()
     server_address = request.headers.get("host") or f"localhost:{app_state.config.port}"
 
@@ -154,7 +157,9 @@ def _page_context(request: Request, *, active_page: str) -> dict[str, Any]:
         "panel_meta": panel_meta.model_dump(mode="json"),
         "servers": [server.model_dump(mode="json") for server in servers],
         "active_server_id": state.record.server_id,
+        "active_server_query": f"?server_id={state.record.server_id}",
         "env_entries": [entry.model_dump(mode="json") for entry in env_entries],
+        "git_deploy": git_deploy,
         "workspace_path": str(state.config.workspace_dir),
         "auth_enabled": bool(app_state.config.ui_username and app_state.config.ui_password),
         "server_address": server_address,
@@ -308,9 +313,58 @@ async def get_panel_meta(request: Request) -> JSONResponse:
 
 @router.put("/api/panel-meta")
 async def save_panel_meta(request: Request, payload: PanelMetaUpdateModel) -> JSONResponse:
-    panel_meta = _services(request).panel_meta_service.update(payload)
-    await _services(request).log_service.write("system", "Panel metadata updated.")
+    runtime = _services(request)
+    panel_meta = runtime.panel_meta_service.update(payload)
+    _registry(request).update_record_meta(runtime.record.server_id, panel_meta.display_name, panel_meta.description)
+    await runtime.log_service.write("system", "Panel metadata updated.")
     return JSONResponse(panel_meta.model_dump(mode="json"))
+
+
+@router.get("/api/git-deploy")
+async def get_git_deploy(request: Request) -> JSONResponse:
+    return JSONResponse(_services(request).git_deploy_service.get())
+
+
+@router.put("/api/git-deploy")
+async def save_git_deploy(request: Request, payload: GitDeployUpdateRequest) -> JSONResponse:
+    try:
+        result = _services(request).git_deploy_service.update(payload)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    await _services(request).log_service.write("system", "Git-Deployment gespeichert.")
+    return JSONResponse(result)
+
+
+@router.post("/api/git-deploy/check")
+async def check_git_deploy(request: Request) -> JSONResponse:
+    try:
+        result = await _services(request).git_deploy_service.check_update()
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse(result)
+
+
+@router.post("/api/git-deploy/import")
+async def import_git_deploy(request: Request) -> JSONResponse:
+    try:
+        result = await _services(request).git_deploy_service.import_repo()
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse(result)
+
+
+@router.post("/api/git-deploy/update")
+async def update_git_deploy(request: Request) -> JSONResponse:
+    try:
+        result = await _services(request).git_deploy_service.update_repo()
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse(result)
+
+
+@router.get("/api/app-update")
+async def get_app_update(request: Request) -> JSONResponse:
+    return JSONResponse(AppUpdateService(_app_state(request).config).snapshot())
 
 
 @router.post("/api/bot/start")
@@ -627,7 +681,7 @@ async def websocket_logs(websocket: WebSocket, channel: str) -> None:
 
     await websocket.accept()
     registry = websocket.app.state.server_registry_service
-    runtime = registry.get_runtime(websocket.cookies.get(ACTIVE_SERVER_COOKIE))
+    runtime = registry.get_runtime(websocket.query_params.get("server_id") or websocket.cookies.get(ACTIVE_SERVER_COOKIE))
     log_service = runtime.log_service
     queue = log_service.subscribe(channel)
 

@@ -73,6 +73,32 @@
         </dl>
     </article>
 
+    <article class="kb-card">
+        <h2 class="card-title">{{ ui["app_update.heading"] }}</h2>
+        <dl class="info-table compact-table">
+            <div>
+                <dt>{{ ui["app_update.image"] }}</dt>
+                <dd><span class="code-pill" id="appUpdateImage">ghcr.io/bastild/docker-discord-bot</span></dd>
+            </div>
+            <div>
+                <dt>{{ ui["app_update.current_tag"] }}</dt>
+                <dd><span class="code-pill" id="appUpdateCurrentTag">-</span></dd>
+            </div>
+            <div>
+                <dt>{{ ui["app_update.latest_tag"] }}</dt>
+                <dd><span class="code-pill" id="appUpdateLatestTag">-</span></dd>
+            </div>
+            <div>
+                <dt>{{ ui["git.status"] }}</dt>
+                <dd><span id="appUpdateMessage">{{ ui["common.none"] }}</span></dd>
+            </div>
+        </dl>
+        <p class="surface-note">{{ ui["app_update.help"] }}</p>
+        <div class="card-actions card-actions-end">
+            <button class="btn btn-secondary" id="checkAppUpdateBtn" type="button">{{ ui["app_update.check"] }}</button>
+        </div>
+    </article>
+
     <article class="kb-card settings-reinstall">
         <h2 class="card-title">Reinstall Server</h2>
         <p class="surface-note">

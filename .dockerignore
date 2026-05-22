@@ -1,5 +1,6 @@
-﻿__pycache__/
+__pycache__/
 *.py[cod]
+.codex-pycache/
 *.log
 .uvicorn*.log
 .venv/

@@ -7,6 +7,8 @@ const state = {
     translations: initial.translations || {},
     settings: initial.settings || {},
     panelMeta: initial.panelMeta || {},
+    gitDeploy: initial.gitDeploy || {},
+    appUpdate: {},
     servers: initial.servers || [],
     activeServerId: initial.activeServerId || "default",
     envEntries: initial.envEntries || [],
@@ -262,13 +264,25 @@ async function api(path, options = {}) {
         headers["Content-Type"] = "application/json";
     }
 
-    const response = await fetch(path, { ...options, headers });
+    const target = withServerParam(path);
+    if (state.activeServerId) headers["X-Server-Id"] = state.activeServerId;
+    const response = await fetch(target, { ...options, headers });
     if (!response.ok) {
         throw new Error(await extractError(response));
     }
     if (response.status === 204) return null;
     const contentType = response.headers.get("content-type") || "";
     return contentType.includes("application/json") ? response.json() : response.text();
+}
+
+function withServerParam(path) {
+    if (!path.startsWith("/api/") || path.startsWith("/api/servers")) return path;
+    const [base, hash = ""] = path.split("#");
+    const [pathname, query = ""] = base.split("?");
+    const params = new URLSearchParams(query);
+    if (state.activeServerId) params.set("server_id", state.activeServerId);
+    const nextQuery = params.toString();
+    return `${pathname}${nextQuery ? `?${nextQuery}` : ""}${hash ? `#${hash}` : ""}`;
 }
 
 async function extractError(response) {
@@ -391,9 +405,16 @@ function bindSettingsPage() {
         panelDescriptionInput: byId("panelDescriptionInput"),
         localeSelect: byId("localeSelect"),
         savePanelBtn: byId("savePanelBtn"),
+        checkAppUpdateBtn: byId("checkAppUpdateBtn"),
+        appUpdateImage: byId("appUpdateImage"),
+        appUpdateCurrentTag: byId("appUpdateCurrentTag"),
+        appUpdateLatestTag: byId("appUpdateLatestTag"),
+        appUpdateMessage: byId("appUpdateMessage"),
     });
 
     els.savePanelBtn?.addEventListener("click", savePanelMeta);
+    els.checkAppUpdateBtn?.addEventListener("click", () => refreshAppUpdate({ silent: false }));
+    refreshAppUpdate({ silent: true });
 }
 
 async function savePanelMeta() {
@@ -408,6 +429,11 @@ async function savePanelMeta() {
             }),
         });
         state.panelMeta = payload;
+        state.servers = state.servers.map((server) => (
+            server.server_id === state.activeServerId
+                ? { ...server, display_name: payload.display_name, description: payload.description }
+                : server
+        ));
         setText(els.serverNameLabels, payload.display_name);
         setLocaleCookie(nextLocale);
         if (nextLocale !== state.locale) {
@@ -417,6 +443,21 @@ async function savePanelMeta() {
         showToastKey("toast.panel_saved");
     } catch (error) {
         showToast(error.message, "error");
+    }
+}
+
+async function refreshAppUpdate({ silent = false } = {}) {
+    if (!els.appUpdateMessage) return;
+    try {
+        const payload = await api("/api/app-update");
+        state.appUpdate = payload;
+        if (els.appUpdateImage) els.appUpdateImage.textContent = payload.image || "-";
+        if (els.appUpdateCurrentTag) els.appUpdateCurrentTag.textContent = payload.current_tag || "-";
+        if (els.appUpdateLatestTag) els.appUpdateLatestTag.textContent = payload.latest_tag || (payload.current_tag || "-");
+        if (els.appUpdateMessage) els.appUpdateMessage.textContent = payload.message || tr("common.none");
+        if (!silent) showToast(payload.update_available ? tr("app_update.available") : tr("app_update.current"));
+    } catch (error) {
+        if (!silent) showToast(error.message, "error");
     }
 }
 
@@ -484,7 +525,7 @@ function bindBackupsPage() {
         if (!button) return;
         const name = button.dataset.name || "";
         if (button.dataset.action === "download") {
-            window.open(`/api/backups/${encodeURIComponent(name)}/download`, "_blank", "noopener");
+            window.open(withServerParam(`/api/backups/${encodeURIComponent(name)}/download`), "_blank", "noopener");
             return;
         }
         if (button.dataset.action === "delete") {
@@ -551,15 +592,44 @@ function bindStartupPage() {
         installDepsBtn: byId("installDepsBtn"),
         packageInput: byId("packageInput"),
         installPackageBtn: byId("installPackageBtn"),
+        gitRepoInput: byId("gitRepoInput"),
+        gitBranchInput: byId("gitBranchInput"),
+        gitAutoUpdateInput: byId("gitAutoUpdateInput"),
+        gitInstallDepsInput: byId("gitInstallDepsInput"),
+        gitRestartInput: byId("gitRestartInput"),
+        gitStatusText: byId("gitStatusText"),
+        gitLocalCommitText: byId("gitLocalCommitText"),
+        gitRemoteCommitText: byId("gitRemoteCommitText"),
+        gitMessageText: byId("gitMessageText"),
+        checkGitBtn: byId("checkGitBtn"),
+        importGitBtn: byId("importGitBtn"),
+        updateGitBtn: byId("updateGitBtn"),
     });
 
     applySettingsToForm();
+    applyGitDeployToForm();
     bindEnvironmentPage();
     bindTaskPage({ withConsoleForm: false });
 
     els.saveSettingsBtn?.addEventListener("click", saveSettings);
     els.refreshStartupBtn?.addEventListener("click", refreshStartupPage);
     els.installDepsBtn?.addEventListener("click", () => startTask("/api/tasks/install-deps", {}));
+    els.checkGitBtn?.addEventListener("click", async () => {
+        if (!(await saveGitDeploy({ silent: true }))) return;
+        await runGitAction("/api/git-deploy/check", "toast.git_checked");
+    });
+    els.importGitBtn?.addEventListener("click", async () => {
+        if (!(await saveGitDeploy({ silent: true }))) return;
+        if (!window.confirm(tr("git.import_confirm"))) return;
+        await runGitAction("/api/git-deploy/import", "toast.git_imported");
+        await refreshFilesIfVisible();
+    });
+    els.updateGitBtn?.addEventListener("click", async () => {
+        if (!(await saveGitDeploy({ silent: true }))) return;
+        if (!window.confirm(tr("git.update_confirm"))) return;
+        await runGitAction("/api/git-deploy/update", "toast.git_updated");
+        await refreshFilesIfVisible();
+    });
     els.installPackageBtn?.addEventListener("click", () => {
         const packageName = els.packageInput?.value.trim() || "";
         if (!packageName) {
@@ -569,6 +639,72 @@ function bindStartupPage() {
         startTask("/api/tasks/install-package", { package: packageName });
         els.packageInput.value = "";
     });
+}
+
+function applyGitDeployToForm() {
+    const payload = state.gitDeploy || {};
+    if (els.gitRepoInput) els.gitRepoInput.value = payload.repo_url || "";
+    if (els.gitBranchInput) els.gitBranchInput.value = payload.branch || "main";
+    if (els.gitAutoUpdateInput) els.gitAutoUpdateInput.checked = Boolean(payload.auto_update);
+    if (els.gitInstallDepsInput) els.gitInstallDepsInput.checked = payload.install_requirements !== false;
+    if (els.gitRestartInput) els.gitRestartInput.checked = payload.restart_after_update !== false;
+    if (els.gitStatusText) els.gitStatusText.textContent = renderGitStatus(payload.status);
+    if (els.gitLocalCommitText) els.gitLocalCommitText.textContent = shortCommit(payload.last_commit);
+    if (els.gitRemoteCommitText) els.gitRemoteCommitText.textContent = shortCommit(payload.last_remote_commit);
+    if (els.gitMessageText) els.gitMessageText.textContent = payload.message || tr("common.none");
+}
+
+function renderGitStatus(status) {
+    const mapping = {
+        not_configured: tr("git.status_not_configured"),
+        configured: tr("git.status_configured"),
+        not_imported: tr("git.status_not_imported"),
+        up_to_date: tr("git.status_up_to_date"),
+        update_available: tr("git.status_update_available"),
+        imported: tr("git.status_imported"),
+        updated: tr("git.status_updated"),
+    };
+    return mapping[status] || status || tr("common.none");
+}
+
+function shortCommit(value) {
+    return value ? String(value).slice(0, 12) : "-";
+}
+
+async function saveGitDeploy({ silent = false } = {}) {
+    try {
+        state.gitDeploy = await api("/api/git-deploy", {
+            method: "PUT",
+            body: JSON.stringify({
+                repo_url: (els.gitRepoInput?.value || "").trim(),
+                branch: (els.gitBranchInput?.value || "main").trim(),
+                auto_update: Boolean(els.gitAutoUpdateInput?.checked),
+                install_requirements: Boolean(els.gitInstallDepsInput?.checked),
+                restart_after_update: Boolean(els.gitRestartInput?.checked),
+            }),
+        });
+        applyGitDeployToForm();
+        if (!silent) showToastKey("toast.git_saved");
+        return true;
+    } catch (error) {
+        showToast(error.message, "error");
+        return false;
+    }
+}
+
+async function runGitAction(path, toastKey) {
+    try {
+        state.gitDeploy = await api(path, { method: "POST" });
+        applyGitDeployToForm();
+        await Promise.all([refreshStatus({ silent: true }), refreshTasks({ silent: true })]);
+        showToastKey(toastKey);
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+async function refreshFilesIfVisible() {
+    if (page === "files") await refreshFiles(state.currentPath);
 }
 
 function applySettingsToForm() {
@@ -695,10 +831,12 @@ async function refreshStartupPage() {
             api("/api/env"),
             api("/api/tasks"),
         ]);
+        state.gitDeploy = await api("/api/git-deploy");
         state.settings = settings;
         state.envEntries = envPayload.entries || [];
         state.tasks = taskPayload.items || [];
         applySettingsToForm();
+        applyGitDeployToForm();
         renderEnvList();
         renderTasks();
         await Promise.all([refreshStatus({ silent: true }), refreshMetrics({ silent: true })]);
@@ -1389,7 +1527,7 @@ function clearEditor() {
 
 function downloadEntry(path) {
     if (!path) return;
-    window.open(`/api/files/download?path=${encodeURIComponent(path)}`, "_blank", "noopener");
+    window.open(withServerParam(`/api/files/download?path=${encodeURIComponent(path)}`), "_blank", "noopener");
 }
 
 async function extractArchive(path) {
@@ -1413,9 +1551,9 @@ async function downloadSelection(paths) {
     if (!uniquePaths.length) return;
 
     try {
-        const response = await fetch("/api/files/download-selection", {
+        const response = await fetch(withServerParam("/api/files/download-selection"), {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "X-Server-Id": state.activeServerId },
             body: JSON.stringify({ paths: uniquePaths }),
         });
         if (!response.ok) {
@@ -1844,7 +1982,9 @@ function switchLogTab(tab) {
 function connectLogSocket(channel) {
     if (state.sockets[channel]) return;
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const socket = new WebSocket(`${protocol}//${window.location.host}/ws/logs/${channel}`);
+    const params = new URLSearchParams();
+    if (state.activeServerId) params.set("server_id", state.activeServerId);
+    const socket = new WebSocket(`${protocol}//${window.location.host}/ws/logs/${channel}?${params.toString()}`);
     state.sockets[channel] = socket;
 
     socket.addEventListener("message", (event) => {
@@ -1876,7 +2016,7 @@ function renderLogSurfaces() {
     }
 
     if (els.downloadLogsLink) {
-        els.downloadLogsLink.href = `/api/logs/${state.logTab}/download`;
+        els.downloadLogsLink.href = withServerParam(`/api/logs/${state.logTab}/download`);
     }
 
     els.logTabButtons?.forEach((button) => {

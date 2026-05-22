@@ -2,7 +2,7 @@ name: homelab-discord-bot-manager
 
 services:
   homelab-discord-bot-manager:
-    image: ghcr.io/bastild/docker-discord-bot:0.1.0
+    image: ghcr.io/bastild/docker-discord-bot:0.1.1
     container_name: homelab-discord-bot-manager
     init: true
     restart: unless-stopped
@@ -89,8 +89,8 @@ x-casaos:
   title:
     en_US: Homelab Discord Bot Manager
   description:
-    en_US: A Docker-friendly control panel for one Discord bot with file manager, safe console, logs, schedules and backups.
+    en_US: A Docker-friendly control panel for Discord bots with file manager, safe console, logs, schedules, backups and GitHub deployment.
   tips:
     before_install:
       en_US: |
-        The web UI is unauthenticated unless UI_USERNAME and UI_PASSWORD are set. For easy personal updates you can use the moving `main` image tag, but App Store submissions should use a fixed version tag like `0.1.0`.
+        The web UI is unauthenticated unless UI_USERNAME and UI_PASSWORD are set. For easy personal updates you can use the moving `main` image tag, but App Store submissions should use a fixed version tag like `0.1.1`.

@@ -13,7 +13,7 @@
     <div class="app-shell">
         <aside class="sidebar-shell">
             <div class="sidebar-inner">
-                <a class="brand-link" href="/">
+                <a class="brand-link" href="/{{ active_server_query }}">
                     <span class="brand-mark" aria-hidden="true">
                         <span class="brand-mascot">
                             <span class="brand-mascot-eye brand-mascot-eye-left"></span>
@@ -59,7 +59,7 @@
                         <p class="nav-group-title">{{ group["section"] }}</p>
                         <div class="nav-list">
                             {% for item in group["items"] %}
-                            <a class="nav-link {% if active_page == item.key %}is-active{% endif %}" href="{{ item.href }}">
+                            <a class="nav-link {% if active_page == item.key %}is-active{% endif %}" href="{{ item.href }}{{ active_server_query }}">
                                 <span class="nav-icon nav-icon-{{ item.icon }}" aria-hidden="true"></span>
                                 <span>{{ item.label }}</span>
                             </a>
@@ -71,7 +71,7 @@
 
                 <div class="sidebar-footer">
                     <div class="account-menu-wrap">
-                    <a class="account-link" href="/settings">
+                    <a class="account-link" href="/settings{{ active_server_query }}">
                         <span class="account-mark" aria-hidden="true"></span>
                         <div class="account-copy">
                             <strong>{{ ui["layout.account"] }}</strong>
@@ -80,7 +80,7 @@
                     </a>
                     <button class="account-more-button" id="accountMoreBtn" type="button" aria-label="{{ ui['account.menu'] }}"><span class="account-more" aria-hidden="true"></span></button>
                     <div class="account-menu hidden" id="accountMenu">
-                        <a href="/">{{ ui["account.server_overview"] }}</a>
+                        <a href="/{{ active_server_query }}">{{ ui["account.server_overview"] }}</a>
                         {% if active_server_id != "default" %}
                         <button type="button" id="deleteActiveServerBtn" class="menu-icon-delete">{{ ui["account.delete_server"] }}</button>
                         {% endif %}
@@ -198,6 +198,7 @@
             "settings": {{ settings | tojson | safe }},
             "panelMeta": {{ panel_meta | tojson | safe }},
             "envEntries": {{ env_entries | tojson | safe }},
+            "gitDeploy": {{ git_deploy | tojson | safe }},
             "servers": {{ servers | tojson | safe }},
             "activeServerId": {{ active_server_id | tojson | safe }},
             "authEnabled": {{ auth_enabled | tojson | safe }},
