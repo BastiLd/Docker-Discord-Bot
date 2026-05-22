@@ -1101,6 +1101,7 @@ function bindDatabasesPage() {
         databaseTitle: byId("databaseTitle"),
         databaseMeta: byId("databaseMeta"),
         databaseTableSelect: byId("databaseTableSelect"),
+        databaseTableTabs: byId("databaseTableTabs"),
         reloadTableBtn: byId("reloadTableBtn"),
         databaseTableWrap: byId("databaseTableWrap"),
         databaseQueryForm: byId("databaseQueryForm"),
@@ -1114,6 +1115,10 @@ function bindDatabasesPage() {
     els.databaseList?.addEventListener("click", (event) => {
         const button = event.target.closest("[data-db-path]");
         if (button) openDatabase(button.dataset.dbPath);
+    });
+    els.databaseTableTabs?.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-db-table]");
+        if (button) openDatabaseTable(button.dataset.dbTable);
     });
     els.databaseTableSelect?.addEventListener("change", () => openDatabaseTable(els.databaseTableSelect.value));
     els.reloadTableBtn?.addEventListener("click", () => openDatabaseTable(state.activeDbTable));
@@ -1159,11 +1164,14 @@ async function openDatabase(path) {
         state.activeDbTable = payload.tables?.[0]?.name || "";
         if (els.databasePathLabel) els.databasePathLabel.textContent = payload.path || "/";
         if (els.databaseTitle) els.databaseTitle.textContent = payload.name || payload.path || tr("databases.select_title");
-        if (els.databaseMeta) els.databaseMeta.textContent = payload.tables?.length
-            ? `${tr("databases.tables")}: ${payload.tables.map((table) => table.name).join(", ")}`
-            : tr("databases.no_tables");
+        if (els.databaseMeta) {
+            els.databaseMeta.textContent = payload.tables?.length
+                ? tr("databases.table_summary", { count: payload.tables.length })
+                : tr("databases.no_tables");
+        }
         renderDatabaseList();
         renderDatabaseTableSelect();
+        renderDatabaseTableTabs();
         setDatabaseControlsEnabled(true);
         if (state.activeDbTable) await openDatabaseTable(state.activeDbTable);
         else renderDatabaseTableEmpty(tr("databases.no_tables"));
@@ -1182,10 +1190,24 @@ function renderDatabaseTableSelect() {
     els.databaseTableSelect.disabled = !tables.length;
 }
 
+function renderDatabaseTableTabs() {
+    if (!els.databaseTableTabs) return;
+    const tables = state.databaseInspect?.tables || [];
+    els.databaseTableTabs.innerHTML = tables.length
+        ? tables.map((table) => `
+            <button class="database-table-chip ${state.activeDbTable === table.name ? "is-active" : ""}" type="button" data-db-table="${escapeHtml(table.name)}">
+                <span>${escapeHtml(table.name)}</span>
+                <small>${escapeHtml(table.type)}</small>
+            </button>
+        `).join("")
+        : "";
+}
+
 async function openDatabaseTable(tableName) {
     if (!state.activeDatabase || !tableName) return;
     state.activeDbTable = tableName;
     if (els.databaseTableSelect) els.databaseTableSelect.value = tableName;
+    renderDatabaseTableTabs();
     try {
         const payload = await api(`/api/databases/table?path=${encodeURIComponent(state.activeDatabase)}&table=${encodeURIComponent(tableName)}&limit=100`);
         state.databaseRows = payload;
@@ -1206,12 +1228,17 @@ function renderDatabaseRows(payload) {
     }
     const countText = tr("databases.rows", { count: payload.total ?? rows.length });
     const readonlyText = tableMeta?.editable ? "" : `<p class="surface-note">${escapeHtml(tr("databases.readonly"))}</p>`;
+    const emptyRows = `<tr><td colspan="${columns.length + 1}"><div class="empty-state database-table-empty">${escapeHtml(tr("databases.table_empty"))}</div></td></tr>`;
     els.databaseTableWrap.innerHTML = `
         <div class="database-table-meta">
-            <strong>${escapeHtml(payload.table)}</strong>
+            <div>
+                <strong>${escapeHtml(payload.table)}</strong>
+                <span>${escapeHtml(tableMeta?.type || "table")}</span>
+            </div>
             <span>${escapeHtml(countText)}</span>
         </div>
         ${readonlyText}
+        <p class="surface-note database-scroll-hint">${escapeHtml(tr("databases.scroll_hint"))}</p>
         <div class="table-wrap database-scroll-table">
             <table class="data-table database-data-table">
                 <thead>
@@ -1226,7 +1253,7 @@ function renderDatabaseRows(payload) {
                             <td><span class="code-pill">${escapeHtml(row.__rowid__)}</span></td>
                             ${columns.map((column) => renderDatabaseCell(row, column, Boolean(tableMeta?.editable))).join("")}
                         </tr>
-                    `).join("") || `<tr><td colspan="${columns.length + 1}"><div class="empty-state">${escapeHtml(tr("databases.empty"))}</div></td></tr>`}
+                    `).join("") || emptyRows}
                 </tbody>
             </table>
         </div>
@@ -1237,7 +1264,8 @@ function renderDatabaseCell(row, column, editable) {
     const value = row[column.name];
     const text = value === null || value === undefined ? "" : String(value);
     if (!editable || column.primary_key) {
-        return `<td>${escapeHtml(value === null || value === undefined ? tr("databases.null_value") : text)}</td>`;
+        const display = value === null || value === undefined ? tr("databases.null_value") : compactDatabaseValue(text);
+        return `<td title="${escapeHtml(text)}">${escapeHtml(display)}</td>`;
     }
     return `
         <td>
@@ -1248,6 +1276,11 @@ function renderDatabaseCell(row, column, editable) {
                 data-original="${escapeHtml(text)}">
         </td>
     `;
+}
+
+function compactDatabaseValue(value) {
+    const text = String(value).replace(/\s+/g, " ").trim();
+    return text.length > 180 ? `${text.slice(0, 177)}...` : text;
 }
 
 async function handleDatabaseCellChange(event) {
@@ -1303,7 +1336,7 @@ function renderDatabaseQueryResult(payload) {
             <table class="data-table database-data-table">
                 <thead><tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr></thead>
                 <tbody>
-                    ${rows.map((row) => `<tr>${columns.map((column) => `<td>${escapeHtml(row[column] ?? "")}</td>`).join("")}</tr>`).join("")}
+                    ${rows.map((row) => `<tr>${columns.map((column) => `<td title="${escapeHtml(row[column] ?? "")}">${escapeHtml(compactDatabaseValue(row[column] ?? ""))}</td>`).join("")}</tr>`).join("") || `<tr><td colspan="${columns.length}"><div class="empty-state database-table-empty">${escapeHtml(tr("databases.table_empty"))}</div></td></tr>`}
                 </tbody>
             </table>
         </div>
@@ -1323,11 +1356,14 @@ function clearDatabaseView() {
     if (els.databasePathLabel) els.databasePathLabel.textContent = tr("databases.no_selection");
     if (els.databaseTitle) els.databaseTitle.textContent = tr("databases.select_title");
     if (els.databaseMeta) els.databaseMeta.textContent = tr("databases.select_hint");
+    if (els.databaseTableSelect) els.databaseTableSelect.innerHTML = "";
+    if (els.databaseTableTabs) els.databaseTableTabs.innerHTML = "";
     renderDatabaseTableEmpty(tr("databases.empty"));
     setDatabaseControlsEnabled(false);
 }
 
 function setDatabaseControlsEnabled(enabled) {
+    if (els.databaseTableSelect) els.databaseTableSelect.disabled = !enabled || !(state.databaseInspect?.tables || []).length;
     if (els.reloadTableBtn) els.reloadTableBtn.disabled = !enabled;
     if (els.databaseQueryInput) els.databaseQueryInput.disabled = !enabled;
     if (els.runDatabaseQueryBtn) els.runDatabaseQueryBtn.disabled = !enabled;

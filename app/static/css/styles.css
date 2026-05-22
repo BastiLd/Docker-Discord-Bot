@@ -2105,16 +2105,38 @@ button {
     padding: 28px 0 10px;
 }
 
+body[data-page="databases"] {
+    overflow-x: hidden;
+}
+
+.database-page {
+    display: grid;
+    gap: 18px;
+    width: 100%;
+    min-width: 0;
+}
+
+.database-page-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+}
+
 .database-layout {
     display: grid;
-    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
     gap: 18px;
     align-items: start;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .database-sidebar,
 .database-main {
     min-width: 0;
+    overflow: hidden;
 }
 
 .database-sidebar,
@@ -2130,7 +2152,7 @@ button {
 .database-list {
     display: grid;
     gap: 10px;
-    max-height: min(680px, calc(100vh - 320px));
+    max-height: min(720px, calc(100vh - 250px));
     overflow: auto;
 }
 
@@ -2159,41 +2181,132 @@ button {
     overflow-wrap: anywhere;
 }
 
-.database-main .toolbar-actions {
+.database-main-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 340px);
+    gap: 16px;
+    align-items: start;
+}
+
+.database-table-picker {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 10px;
+    min-width: 0;
+}
+
+.database-table-picker .field {
+    min-width: 0;
+    width: min(260px, 100%);
 }
 
 #databaseTableSelect {
-    min-width: 220px;
+    width: 100%;
+    min-width: 0;
+}
+
+.database-table-tabs {
+    display: flex;
+    gap: 8px;
+    max-width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+}
+
+.database-table-chip {
+    display: inline-grid;
+    flex: 0 0 auto;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+    max-width: 220px;
+    padding: 8px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-soft);
+    text-align: left;
+    cursor: pointer;
+}
+
+.database-table-chip span {
+    overflow: hidden;
+    color: var(--text-main);
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.database-table-chip small {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+}
+
+.database-table-chip.is-active,
+.database-table-chip:hover {
+    border-color: rgba(242, 90, 41, 0.6);
+    background: rgba(242, 90, 41, 0.14);
 }
 
 .database-table-wrap,
 .database-query-result {
+    max-width: 100%;
     min-height: 160px;
+    overflow: hidden;
 }
 
 .database-table-meta {
     display: flex;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
     margin-bottom: 10px;
     color: var(--text-soft);
 }
 
+.database-table-meta div {
+    min-width: 0;
+}
+
 .database-table-meta strong {
+    display: block;
+    max-width: 100%;
     color: var(--text-main);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.database-table-meta span {
+    flex: 0 0 auto;
+}
+
+.database-scroll-hint {
+    margin: -2px 0 10px;
 }
 
 .database-scroll-table {
+    width: 100%;
+    max-width: 100%;
     max-height: min(620px, calc(100vh - 360px));
     overflow: auto;
     border-radius: var(--radius-control);
+    border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .database-data-table {
-    min-width: 720px;
+    width: max-content;
+    min-width: 100%;
+    table-layout: auto;
+}
+
+.database-data-table th,
+.database-data-table td {
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .database-data-table th small {
@@ -2206,7 +2319,8 @@ button {
 
 .database-cell-input {
     width: 100%;
-    min-width: 140px;
+    min-width: 110px;
+    max-width: 220px;
     padding: 8px 9px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
@@ -2222,6 +2336,20 @@ button {
 .database-query-card {
     display: grid;
     gap: 12px;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.database-query-card textarea {
+    max-width: 100%;
+}
+
+.database-query-card .card-actions {
+    flex-wrap: wrap;
+}
+
+.database-table-empty {
+    min-height: 96px;
 }
 
 .activity-intro {
@@ -2945,6 +3073,22 @@ body[data-page="console"] .mascot-help-button {
     .brand-link {
         min-height: 32px;
         font-size: 0.94rem;
+    }
+
+    .database-page-heading,
+    .database-main-header,
+    .database-table-picker {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .database-page-heading,
+    .database-table-picker {
+        display: grid;
+    }
+
+    .database-table-picker .field {
+        width: 100%;
     }
 
     .server-block {
