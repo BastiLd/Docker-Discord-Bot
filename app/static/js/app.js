@@ -18,6 +18,9 @@ const state = {
     currentFile: null,
     originalContent: "",
     activeTaskId: null,
+    activeTaskOutput: "",
+    consoleFilter: "all",
+    isCreatingServer: false,
     tasks: [],
     logTab: "bot",
     logBuffers: { bot: [], system: [] },
@@ -211,11 +214,12 @@ function bindHomePage() {
         serverDescriptionInput: byId("serverDescriptionInput"),
         serverGitRepoInput: byId("serverGitRepoInput"),
         serverGitBranchInput: byId("serverGitBranchInput"),
-        serverGitImportInput: byId("serverGitImportInput"),
+        createServerBtn: byId("createServerBtn"),
     });
 
     els.createServerForm?.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (state.isCreatingServer) return;
         const displayName = (els.serverNameInput?.value || "").trim();
         if (!displayName) {
             showToastKey("home.name_required", {}, "error");
@@ -223,6 +227,7 @@ function bindHomePage() {
             return;
         }
 
+        setCreateServerLoading(true);
         try {
             const payload = await api("/api/servers", {
                 method: "POST",
@@ -231,14 +236,39 @@ function bindHomePage() {
                     description: (els.serverDescriptionInput?.value || "").trim(),
                     git_repo_url: (els.serverGitRepoInput?.value || "").trim(),
                     git_branch: (els.serverGitBranchInput?.value || "main").trim(),
-                    git_import_now: Boolean(els.serverGitImportInput?.checked),
+                    git_import_now: true,
                 }),
             });
             showToastKey("toast.server_created");
-            if (payload.git_error) showToast(payload.git_error, "error");
-            window.location.href = "/dashboard";
+            const targetUrl = "/dashboard";
+            if (payload.git_error) {
+                openModal({
+                    eyebrow: tr("workspace_report.eyebrow"),
+                    title: tr("workspace_report.import_failed"),
+                    description: payload.git_error,
+                    hideFields: true,
+                    confirmText: tr("workspace_report.confirm"),
+                    cancelText: tr("common.close"),
+                    onConfirm: () => true,
+                    onClose: () => {
+                        window.location.href = targetUrl;
+                    },
+                });
+                return;
+            }
+            if (shouldShowWorkspaceReport(payload.git_deploy?.workspace_report)) {
+                showWorkspaceReportModal(payload.git_deploy.workspace_report, {
+                    title: tr("workspace_report.import_done"),
+                    onClose: () => {
+                        window.location.href = targetUrl;
+                    },
+                });
+                return;
+            }
+            window.location.href = targetUrl;
         } catch (error) {
             showToast(error.message, "error");
+            setCreateServerLoading(false);
         }
     });
 
@@ -249,6 +279,20 @@ function bindHomePage() {
             await deleteServer(button.dataset.serverId, button.dataset.serverName);
         });
     });
+}
+
+function setCreateServerLoading(isLoading) {
+    state.isCreatingServer = isLoading;
+    if (els.createServerBtn) {
+        els.createServerBtn.disabled = isLoading;
+        els.createServerBtn.classList.toggle("is-loading", isLoading);
+        const label = els.createServerBtn.querySelector(".btn-label");
+        if (label) label.textContent = isLoading ? tr("home.creating") : tr("home.create");
+    }
+    els.serverNameInput?.toggleAttribute("disabled", isLoading);
+    els.serverDescriptionInput?.toggleAttribute("disabled", isLoading);
+    els.serverGitRepoInput?.toggleAttribute("disabled", isLoading);
+    els.serverGitBranchInput?.toggleAttribute("disabled", isLoading);
 }
 
 function byId(id) {
@@ -598,6 +642,17 @@ function renderBackups() {
 }
 
 function bindConsolePage() {
+    Object.assign(els, {
+        consoleFilterButtons: queryAll("[data-console-filter]"),
+    });
+    els.consoleFilterButtons?.forEach((button) => {
+        button.addEventListener("click", () => {
+            state.consoleFilter = button.dataset.consoleFilter || "all";
+            updateConsoleFilterButtons();
+            renderTaskOutput();
+        });
+    });
+    updateConsoleFilterButtons();
     bindTaskPage({ withConsoleForm: true });
 }
 
@@ -723,6 +778,9 @@ async function runGitAction(path, toastKey) {
         applyGitDeployToForm();
         await Promise.all([refreshStatus({ silent: true }), refreshTasks({ silent: true })]);
         showToastKey(toastKey);
+        if (shouldShowWorkspaceReport(state.gitDeploy.workspace_report)) {
+            showWorkspaceReportModal(state.gitDeploy.workspace_report, { title: tr("workspace_report.import_done") });
+        }
     } catch (error) {
         showToast(error.message, "error");
     }
@@ -950,12 +1008,14 @@ function renderTasks() {
 async function refreshActiveTask({ silent = false } = {}) {
     if (!els.taskOutput) return;
     if (!state.activeTaskId) {
-        els.taskOutput.textContent = tr("error.task_empty");
+        state.activeTaskOutput = "";
+        renderTaskOutput();
         return;
     }
     try {
         const payload = await api(`/api/tasks/${state.activeTaskId}`);
-        els.taskOutput.textContent = payload.output || tr("error.task_empty");
+        state.activeTaskOutput = payload.output || "";
+        renderTaskOutput(payload);
         const index = state.tasks.findIndex((task) => task.task_id === payload.task_id);
         if (index >= 0) {
             state.tasks[index] = { ...state.tasks[index], ...payload };
@@ -964,6 +1024,65 @@ async function refreshActiveTask({ silent = false } = {}) {
     } catch (error) {
         if (!silent) showToast(error.message, "error");
     }
+}
+
+function updateConsoleFilterButtons() {
+    els.consoleFilterButtons?.forEach((button) => {
+        button.classList.toggle("is-active", (button.dataset.consoleFilter || "all") === state.consoleFilter);
+    });
+}
+
+function renderTaskOutput(task = null) {
+    if (!els.taskOutput) return;
+    const output = state.activeTaskOutput || "";
+    if (!output) {
+        els.taskOutput.textContent = tr("error.task_empty");
+        return;
+    }
+    const filtered = filterConsoleOutput(output, state.consoleFilter, task);
+    els.taskOutput.textContent = filtered || tr("console.filter_empty");
+}
+
+function filterConsoleOutput(output, filter, task = null) {
+    if (!filter || filter === "all") return output;
+    const lines = output.split(/\r?\n/);
+    const commandText = (task?.command || []).join(" ");
+    const patterns = {
+        errors: /(error|exception|traceback|failed|fatal|fehler)/i,
+        warnings: /(warn|warning|deprecated|achtung)/i,
+        success: /(success|done|installed|ok|erfolgreich)/i,
+        commands: /(command|running|executing|^\s*[>$#]|befehl)/i,
+        system: /(task|status|exit|started|finished|process|system|pid|runtime)/i,
+    };
+    return lines
+        .filter((line) => {
+            if (filter === "commands" && commandText && line.includes(commandText)) return true;
+            return patterns[filter]?.test(line);
+        })
+        .join("\n")
+        .trim();
+}
+
+function shouldShowWorkspaceReport(report) {
+    return Boolean(report && ((report.missing || []).length || (report.warnings || []).length));
+}
+
+function showWorkspaceReportModal(report, { title, onClose } = {}) {
+    const missing = report?.missing || [];
+    const warnings = report?.warnings || [];
+    const lines = [];
+    if (missing.length) lines.push(`${tr("workspace_report.missing")}: ${missing.join(", ")}`);
+    warnings.forEach((warning) => lines.push(warning));
+    openModal({
+        eyebrow: tr("workspace_report.eyebrow"),
+        title: title || tr("workspace_report.title"),
+        description: lines.join("\n") || tr("workspace_report.ok"),
+        hideFields: true,
+        confirmText: tr("workspace_report.confirm"),
+        cancelText: tr("common.close"),
+        onConfirm: () => true,
+        onClose,
+    });
 }
 
 function bindFilesPage() {
@@ -2120,12 +2239,13 @@ function openModal(config) {
     if (els.modalEyebrow) els.modalEyebrow.textContent = config.eyebrow || "";
     if (els.modalTitle) els.modalTitle.textContent = config.title || "";
     if (els.modalDescription) els.modalDescription.textContent = config.description || "";
+    if (els.modalFieldOneWrap) els.modalFieldOneWrap.classList.toggle("hidden", Boolean(config.hideFields));
     if (els.modalFieldOneLabel) els.modalFieldOneLabel.textContent = config.fieldOneLabel || tr("modal.name");
     if (els.modalFieldOneInput) {
         els.modalFieldOneInput.value = config.fieldOneValue || "";
         els.modalFieldOneInput.placeholder = config.fieldOnePlaceholder || "";
     }
-    if (els.modalFieldTwoWrap) els.modalFieldTwoWrap.classList.toggle("hidden", !config.fieldTwoLabel);
+    if (els.modalFieldTwoWrap) els.modalFieldTwoWrap.classList.toggle("hidden", Boolean(config.hideFields) || !config.fieldTwoLabel);
     if (els.modalFieldTwoLabel) els.modalFieldTwoLabel.textContent = config.fieldTwoLabel || "";
     if (els.modalFieldTwoInput) {
         els.modalFieldTwoInput.value = config.fieldTwoValue || "";
@@ -2134,14 +2254,17 @@ function openModal(config) {
     if (els.modalConfirmBtn) els.modalConfirmBtn.textContent = config.confirmText || tr("common.save");
     if (els.modalSecondaryBtn) els.modalSecondaryBtn.textContent = config.cancelText || tr("schedules.cancel");
     els.modalShell?.classList.remove("hidden");
-    window.setTimeout(() => els.modalFieldOneInput?.focus(), 0);
+    window.setTimeout(() => (config.hideFields ? els.modalConfirmBtn : els.modalFieldOneInput)?.focus(), 0);
 }
 
 function closeModal() {
+    const onClose = activeModal?.onClose;
     activeModal = null;
     els.modalShell?.classList.add("hidden");
     els.modalForm?.reset();
+    els.modalFieldOneWrap?.classList.remove("hidden");
     els.modalFieldTwoWrap?.classList.add("hidden");
+    onClose?.();
 }
 
 function renderTaskStatus(status) {

@@ -1,1 +1,1 @@
-﻿"""Discord bot manager application package."""
+"""Discord bot manager application package."""

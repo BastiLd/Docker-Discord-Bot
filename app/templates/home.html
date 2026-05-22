@@ -24,12 +24,11 @@
             <span>{{ ui["git.branch"] }}</span>
             <input id="serverGitBranchInput" type="text" maxlength="120" value="main">
         </label>
-        <label class="checkbox-field">
-            <input id="serverGitImportInput" type="checkbox" checked>
-            <span>{{ ui["home.git_import_now"] }}</span>
-        </label>
         <p class="surface-note">{{ ui["home.git_help"] }}</p>
-        <button class="btn btn-primary" type="submit">{{ ui["home.create"] }}</button>
+        <button class="btn btn-primary" id="createServerBtn" type="submit">
+            <span class="btn-label">{{ ui["home.create"] }}</span>
+            <span class="btn-spinner" aria-hidden="true"></span>
+        </button>
     </form>
 </section>
 

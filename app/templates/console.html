@@ -33,6 +33,14 @@
         <span class="console-prompt">container@katabump~</span>
         <span class="console-logtext" data-status-field="console_message">{{ ui["console.status_unknown"] }}</span>
     </div>
+    <div class="console-filter-bar" role="group" aria-label="{{ ui['console.filters'] }}">
+        <button class="filter-chip is-active" type="button" data-console-filter="all">{{ ui["console.filter_all"] }}</button>
+        <button class="filter-chip" type="button" data-console-filter="errors">{{ ui["console.filter_errors"] }}</button>
+        <button class="filter-chip" type="button" data-console-filter="warnings">{{ ui["console.filter_warnings"] }}</button>
+        <button class="filter-chip" type="button" data-console-filter="success">{{ ui["console.filter_success"] }}</button>
+        <button class="filter-chip" type="button" data-console-filter="commands">{{ ui["console.filter_commands"] }}</button>
+        <button class="filter-chip" type="button" data-console-filter="system">{{ ui["console.filter_system"] }}</button>
+    </div>
     <pre class="terminal-output console-terminal" id="taskOutput">{{ ui["console.empty"] }}</pre>
     <form class="console-command-bar console-command-strip" id="consoleForm">
         <span class="console-chevron" aria-hidden="true"></span>

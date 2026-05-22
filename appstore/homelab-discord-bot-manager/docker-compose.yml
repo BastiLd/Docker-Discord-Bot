@@ -2,7 +2,7 @@ name: homelab-discord-bot-manager
 
 services:
   homelab-discord-bot-manager:
-    image: ghcr.io/bastild/docker-discord-bot:0.1.3
+    image: ghcr.io/bastild/docker-discord-bot:0.1.4
     container_name: homelab-discord-bot-manager
     init: true
     restart: unless-stopped
@@ -93,4 +93,4 @@ x-casaos:
   tips:
     before_install:
       en_US: |
-        The web UI is unauthenticated unless UI_USERNAME and UI_PASSWORD are set. For easy personal updates you can use the moving `main` image tag, but App Store submissions should use a fixed version tag like `0.1.3`.
+        The web UI is unauthenticated unless UI_USERNAME and UI_PASSWORD are set. For easy personal updates you can use the moving `main` image tag, but App Store submissions should use a fixed version tag like `0.1.4`.

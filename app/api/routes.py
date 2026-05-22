@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import sys
 from pathlib import Path
@@ -280,8 +280,7 @@ async def create_server(request: Request, payload: CreateServerRequest) -> JSONR
                     restart_after_update=True,
                 )
             )
-            if payload.git_import_now:
-                git_deploy = await runtime.git_deploy_service.import_repo()
+            git_deploy = await runtime.git_deploy_service.import_repo()
         except Exception as exc:  # noqa: BLE001
             git_error = str(exc)
             await runtime.log_service.write("system", f"Git-Import beim Erstellen fehlgeschlagen: {git_error}")

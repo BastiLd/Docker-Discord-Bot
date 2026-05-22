@@ -1,4 +1,4 @@
-﻿# Homelab Discord Bot Manager
+# Homelab Discord Bot Manager
 
 ## Architekturuebersicht
 
@@ -191,7 +191,7 @@ Unter `appstore/homelab-discord-bot-manager/` liegt eine Compose-Vorlage im Casa
 
 Vor einer offiziellen Einreichung musst du:
 
-- ein versioniertes Image veroeffentlichen, z. B. `ghcr.io/<user>/homelab-discord-bot-manager:0.1.3`
+- ein versioniertes Image veroeffentlichen, z. B. `ghcr.io/<user>/homelab-discord-bot-manager:0.1.4`
 - den Platzhalter `ghcr.io/replace-me/...` in der Store-Compose-Datei ersetzen
 - `icon.png` pruefen und `screenshot-1.png` aus einer echten ZimaOS/CasaOS-Testinstallation aktualisieren
 - die App auf deiner eigenen ZimaOS/CasaOS-Instanz testen
