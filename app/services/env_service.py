@@ -9,11 +9,11 @@ class EnvService:
     def __init__(self, env_path: Path) -> None:
         self.env_path = env_path
         self.env_path.parent.mkdir(parents=True, exist_ok=True)
-        if not self.env_path.exists():
-            self.env_path.write_text("", encoding="utf-8")
 
     def list_entries(self) -> list[EnvEntryModel]:
         entries: list[EnvEntryModel] = []
+        if not self.env_path.exists():
+            return entries
         for raw_line in self.env_path.read_text(encoding="utf-8", errors="replace").splitlines():
             line = raw_line.strip().lstrip("\ufeff")
             if not line or line.startswith("#") or "=" not in line:
@@ -26,6 +26,7 @@ class EnvService:
         return entries
 
     def save_entries(self, entries: list[EnvEntryModel]) -> list[EnvEntryModel]:
+        self.env_path.parent.mkdir(parents=True, exist_ok=True)
         unique_entries: list[EnvEntryModel] = []
         seen: set[str] = set()
         for entry in entries:

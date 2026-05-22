@@ -149,7 +149,8 @@ class ServerRegistryService:
     def _build_runtime(self, record: ServerRecord) -> ServerRuntime:
         config = self.base_config.for_server(record.server_id)
         config.ensure_directories()
-        seed_workspace_if_empty(config.workspace_dir)
+        if record.server_id == "default":
+            seed_workspace_if_empty(config.workspace_dir)
 
         log_service = LogService(config.log_dir)
         settings_service = SettingsService(config.config_dir / "settings.json")
