@@ -81,7 +81,7 @@
                     <button class="account-more-button" id="accountMoreBtn" type="button" aria-label="{{ ui['account.menu'] }}"><span class="account-more" aria-hidden="true"></span></button>
                     <div class="account-menu hidden" id="accountMenu">
                         <a href="/{{ active_server_query }}">{{ ui["account.server_overview"] }}</a>
-                        {% if active_server_id != "default" %}
+                        {% if can_delete_active_server %}
                         <button type="button" id="deleteActiveServerBtn" class="menu-icon-delete">{{ ui["account.delete_server"] }}</button>
                         {% endif %}
                     </div>

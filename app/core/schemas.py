@@ -118,6 +118,19 @@ class DownloadSelectionRequest(BaseModel):
     paths: list[str] = Field(min_length=1)
 
 
+class DatabaseCellUpdateRequest(BaseModel):
+    path: str
+    table: str = Field(min_length=1, max_length=200)
+    rowid: int
+    column: str = Field(min_length=1, max_length=200)
+    value: str | None = None
+
+
+class DatabaseQueryRequest(BaseModel):
+    path: str
+    sql: str = Field(min_length=1, max_length=10000)
+
+
 ScheduleAction = Literal["bot_start", "bot_stop", "bot_restart", "install_deps", "console"]
 
 

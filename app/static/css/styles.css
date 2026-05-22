@@ -1023,6 +1023,24 @@ button {
     z-index: 2;
 }
 
+.server-active-badge {
+    grid-column: 3;
+    justify-self: end;
+    padding: 7px 11px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+    font-weight: 700;
+    font-size: 0.82rem;
+    z-index: 2;
+}
+
+.server-card-home > .btn {
+    grid-column: 3;
+    justify-self: end;
+    z-index: 2;
+}
+
 .server-delete-btn:hover {
     background: rgba(154, 36, 50, 0.8);
     color: #fff;
@@ -2087,6 +2105,125 @@ button {
     padding: 28px 0 10px;
 }
 
+.database-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+}
+
+.database-sidebar,
+.database-main {
+    min-width: 0;
+}
+
+.database-sidebar,
+.database-main {
+    display: grid;
+    gap: 16px;
+}
+
+.compact-field {
+    margin: 0;
+}
+
+.database-list {
+    display: grid;
+    gap: 10px;
+    max-height: min(680px, calc(100vh - 320px));
+    overflow: auto;
+}
+
+.database-list-item {
+    display: grid;
+    gap: 5px;
+    width: 100%;
+    padding: 13px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: var(--radius-control);
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--text-main);
+    text-align: left;
+    cursor: pointer;
+}
+
+.database-list-item.is-active,
+.database-list-item:hover {
+    border-color: rgba(242, 90, 41, 0.55);
+    background: rgba(242, 90, 41, 0.12);
+}
+
+.database-list-item span,
+.database-list-item small {
+    color: var(--text-soft);
+    overflow-wrap: anywhere;
+}
+
+.database-main .toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#databaseTableSelect {
+    min-width: 220px;
+}
+
+.database-table-wrap,
+.database-query-result {
+    min-height: 160px;
+}
+
+.database-table-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+    color: var(--text-soft);
+}
+
+.database-table-meta strong {
+    color: var(--text-main);
+}
+
+.database-scroll-table {
+    max-height: min(620px, calc(100vh - 360px));
+    overflow: auto;
+    border-radius: var(--radius-control);
+}
+
+.database-data-table {
+    min-width: 720px;
+}
+
+.database-data-table th small {
+    display: block;
+    margin-top: 3px;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 500;
+}
+
+.database-cell-input {
+    width: 100%;
+    min-width: 140px;
+    padding: 8px 9px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    background: rgba(5, 7, 18, 0.72);
+    color: var(--text-main);
+    font: inherit;
+}
+
+.database-cell-input:focus {
+    outline: 2px solid rgba(242, 90, 41, 0.45);
+}
+
+.database-query-card {
+    display: grid;
+    gap: 12px;
+}
+
 .activity-intro {
     min-height: 132px;
     display: grid;
@@ -2456,8 +2593,8 @@ button {
 .console-shell {
     display: grid;
     grid-template-rows: auto auto minmax(260px, 1fr) auto;
-    height: min(760px, calc(100vh - 190px));
-    min-height: 520px;
+    height: min(780px, calc(100vh - 170px));
+    min-height: 560px;
     overflow: hidden;
 }
 
@@ -2468,7 +2605,9 @@ button {
     border-radius: var(--radius-control);
     background: #0a0c19;
     border: 1px solid rgba(255, 255, 255, 0.07);
-    word-break: break-word;
+    line-height: 1.5;
+    white-space: pre;
+    word-break: normal;
 }
 
 .console-bottom-grid {
@@ -2733,6 +2872,7 @@ body[data-page="console"] .mascot-help-button {
     .dashboard-info-grid,
     .settings-grid,
     .startup-grid,
+    .database-layout,
     .activity-layout,
     .task-layout,
     .startup-top-grid,
@@ -2843,7 +2983,7 @@ body[data-page="console"] .mascot-help-button {
         font-size: 0.88rem;
     }
 
-    .status-pill {
+.status-pill {
         min-height: 30px;
         padding: 0 10px;
     }
@@ -2983,6 +3123,28 @@ body[data-page="console"] .mascot-help-button {
     .tour-copy h2 {
         font-size: 1.5rem;
     }
+}
+
+.server-card-home .status-pill {
+    grid-column: 3;
+    justify-self: end;
+    z-index: 2;
+}
+
+.status-pill.is-running {
+    background: rgba(51, 190, 126, 0.18);
+    color: #aef5cf;
+}
+
+.status-pill.is-stopped,
+.status-pill.is-unknown {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-soft);
+}
+
+.status-pill.is-crashed {
+    background: rgba(204, 56, 75, 0.22);
+    color: #ff9aa8;
 }
 
 @media (max-width: 520px) {

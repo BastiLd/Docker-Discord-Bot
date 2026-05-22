@@ -14,6 +14,8 @@ from app.core.schemas import (
     ConsoleCommandRequest,
     CreateServerRequest,
     CreateEntryRequest,
+    DatabaseCellUpdateRequest,
+    DatabaseQueryRequest,
     DeleteEntriesRequest,
     DownloadSelectionRequest,
     ExtractArchiveRequest,
@@ -135,7 +137,7 @@ def _localized_navigation(locale: str) -> list[dict[str, Any]]:
     ]
 
 
-def _page_context(request: Request, *, active_page: str) -> dict[str, Any]:
+async def _page_context(request: Request, *, active_page: str) -> dict[str, Any]:
     app_state = _app_state(request)
     state = _services(request)
     locale = _locale(request)
@@ -144,7 +146,20 @@ def _page_context(request: Request, *, active_page: str) -> dict[str, Any]:
     env_entries = state.env_service.list_entries()
     panel_meta = state.panel_meta_service.get()
     git_deploy = state.git_deploy_service.get()
-    servers = _registry(request).list_records()
+    registry = _registry(request)
+    servers = []
+    for server in registry.list_records():
+        runtime = registry.get_runtime(server.server_id)
+        status = await runtime.bot_manager.status()
+        servers.append(
+            {
+                **server.model_dump(mode="json"),
+                "status": status,
+                "status_label": translate(locale, f"status.{status.get('state') or 'unknown'}"),
+                "status_class": f"is-{status.get('state') or 'unknown'}",
+                "can_delete": len(registry.list_records()) > 1,
+            }
+        )
     server_address = request.headers.get("host") or f"localhost:{app_state.config.port}"
 
     return {
@@ -155,8 +170,9 @@ def _page_context(request: Request, *, active_page: str) -> dict[str, Any]:
         "navigation": _localized_navigation(locale),
         "settings": settings.model_dump(mode="json"),
         "panel_meta": panel_meta.model_dump(mode="json"),
-        "servers": [server.model_dump(mode="json") for server in servers],
+        "servers": servers,
         "active_server_id": state.record.server_id,
+        "can_delete_active_server": len(registry.list_records()) > 1,
         "active_server_query": f"?server_id={state.record.server_id}",
         "env_entries": [entry.model_dump(mode="json") for entry in env_entries],
         "git_deploy": git_deploy,
@@ -171,22 +187,22 @@ def _page_context(request: Request, *, active_page: str) -> dict[str, Any]:
     }
 
 
-def _render_page(request: Request, template_name: str, *, active_page: str) -> HTMLResponse:
+async def _render_page(request: Request, template_name: str, *, active_page: str) -> HTMLResponse:
     return _app_state(request).templates.TemplateResponse(
         request,
         template_name,
-        _page_context(request, active_page=active_page),
+        await _page_context(request, active_page=active_page),
     )
 
 
 @router.get("/", response_class=HTMLResponse)
 async def home_page(request: Request) -> HTMLResponse:
-    return _render_page(request, "home.html", active_page="home")
+    return await _render_page(request, "home.html", active_page="home")
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page(request: Request) -> HTMLResponse:
-    return _render_page(request, "dashboard.html", active_page="dashboard")
+    return await _render_page(request, "dashboard.html", active_page="dashboard")
 
 
 @router.get("/servers/{server_id}", response_class=HTMLResponse)
@@ -199,54 +215,54 @@ async def select_server(request: Request, server_id: str) -> RedirectResponse:
 
 @router.get("/console", response_class=HTMLResponse)
 async def console_page(request: Request) -> HTMLResponse:
-    return _render_page(request, "console.html", active_page="console")
+    return await _render_page(request, "console.html", active_page="console")
 
 
 @router.get("/settings", response_class=HTMLResponse)
 @router.get("/environment", response_class=HTMLResponse)
 async def settings_page(request: Request) -> HTMLResponse:
-    return _render_page(request, "settings.html", active_page="settings")
+    return await _render_page(request, "settings.html", active_page="settings")
 
 
 @router.get("/activity", response_class=HTMLResponse)
 @router.get("/logs", response_class=HTMLResponse)
 async def activity_page(request: Request) -> HTMLResponse:
-    return _render_page(request, "activity.html", active_page="activity")
+    return await _render_page(request, "activity.html", active_page="activity")
 
 
 @router.get("/files", response_class=HTMLResponse)
 async def files_page(request: Request) -> HTMLResponse:
-    return _render_page(request, "files.html", active_page="files")
+    return await _render_page(request, "files.html", active_page="files")
 
 
 @router.get("/databases", response_class=HTMLResponse)
 async def databases_page(request: Request) -> HTMLResponse:
-    return _render_page(request, "databases.html", active_page="databases")
+    return await _render_page(request, "databases.html", active_page="databases")
 
 
 @router.get("/backups", response_class=HTMLResponse)
 async def backups_page(request: Request) -> HTMLResponse:
-    return _render_page(request, "backups.html", active_page="backups")
+    return await _render_page(request, "backups.html", active_page="backups")
 
 
 @router.get("/network", response_class=HTMLResponse)
 async def network_page(request: Request) -> HTMLResponse:
-    return _render_page(request, "network.html", active_page="network")
+    return await _render_page(request, "network.html", active_page="network")
 
 
 @router.get("/schedules", response_class=HTMLResponse)
 async def schedules_page(request: Request) -> HTMLResponse:
-    return _render_page(request, "schedules.html", active_page="schedules")
+    return await _render_page(request, "schedules.html", active_page="schedules")
 
 
 @router.get("/users", response_class=HTMLResponse)
 async def users_page(request: Request) -> HTMLResponse:
-    return _render_page(request, "users.html", active_page="users")
+    return await _render_page(request, "users.html", active_page="users")
 
 
 @router.get("/startup", response_class=HTMLResponse)
 async def startup_page(request: Request) -> HTMLResponse:
-    return _render_page(request, "startup.html", active_page="startup")
+    return await _render_page(request, "startup.html", active_page="startup")
 
 
 @router.get("/health")
@@ -300,12 +316,14 @@ async def create_server(request: Request, payload: CreateServerRequest) -> JSONR
 @router.delete("/api/servers/{server_id}")
 async def delete_server(request: Request, server_id: str) -> JSONResponse:
     try:
-        await _registry(request).delete_server(server_id)
+        registry = _registry(request)
+        await registry.delete_server(server_id)
     except ValueError as exc:
         _raise_bad_request(exc)
-    response = JSONResponse({"ok": True, "active_server_id": "default"})
+    next_server_id = registry.first_server_id()
+    response = JSONResponse({"ok": True, "active_server_id": next_server_id})
     if _active_server_id(request) == server_id:
-        _set_active_server_cookie(response, "default")
+        _set_active_server_cookie(response, next_server_id)
     return response
 
 
@@ -429,6 +447,53 @@ async def get_file_content(request: Request, path: str) -> JSONResponse:
     except Exception as exc:  # noqa: BLE001
         _raise_bad_request(exc)
     return JSONResponse(payload)
+
+
+@router.get("/api/databases")
+async def list_databases(request: Request) -> JSONResponse:
+    return JSONResponse(_services(request).database_service.list_databases())
+
+
+@router.get("/api/databases/inspect")
+async def inspect_database(request: Request, path: str) -> JSONResponse:
+    try:
+        payload = _services(request).database_service.inspect(path)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse(payload)
+
+
+@router.get("/api/databases/table")
+async def read_database_table(
+    request: Request,
+    path: str,
+    table: str,
+    limit: int = 100,
+    offset: int = 0,
+) -> JSONResponse:
+    try:
+        payload = _services(request).database_service.table_rows(path, table, limit, offset)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse(payload)
+
+
+@router.put("/api/databases/cell")
+async def update_database_cell(request: Request, payload: DatabaseCellUpdateRequest) -> JSONResponse:
+    try:
+        result = _services(request).database_service.update_cell(payload.path, payload.table, payload.rowid, payload.column, payload.value)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse(result)
+
+
+@router.post("/api/databases/query")
+async def query_database(request: Request, payload: DatabaseQueryRequest) -> JSONResponse:
+    try:
+        result = _services(request).database_service.query(payload.path, payload.sql)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse(result)
 
 
 @router.put("/api/files/content")

@@ -12,6 +12,7 @@ from app.core.schemas import PanelMetaModel
 from app.services.backup_service import BackupService
 from app.services.bot_manager import BotManager
 from app.services.bootstrap import seed_workspace_if_empty
+from app.services.database_service import DatabaseService
 from app.services.env_service import EnvService
 from app.services.file_service import FileService
 from app.services.git_deploy_service import GitDeployService
@@ -50,6 +51,7 @@ class ServerRuntime:
     bot_manager: BotManager
     backup_service: BackupService
     git_deploy_service: GitDeployService
+    database_service: DatabaseService
     system_metrics_service: SystemMetricsService
     schedule_service: ScheduleService
     git_auto_update_task: asyncio.Task | None = None
@@ -65,6 +67,9 @@ class ServerRegistryService:
 
     def list_records(self) -> list[ServerRecord]:
         return list(self.records)
+
+    def first_server_id(self) -> str:
+        return self.records[0].server_id if self.records else "default"
 
     def get_runtime(self, server_id: str | None) -> ServerRuntime:
         selected_id = server_id if self._has_record(server_id) else self.records[0].server_id
@@ -87,8 +92,8 @@ class ServerRegistryService:
         return runtime
 
     async def delete_server(self, server_id: str) -> None:
-        if server_id == "default":
-            raise ValueError("Default server cannot be deleted.")
+        if len(self.records) <= 1:
+            raise ValueError("Der letzte Server kann nicht gelöscht werden.")
         record = self._record_for(server_id)
         if record.server_id != server_id:
             raise ValueError("Server not found.")
@@ -104,10 +109,13 @@ class ServerRegistryService:
         self.records = [item for item in self.records if item.server_id != server_id]
         self._save_records()
 
-        server_root = (self.base_config.config_dir / "servers" / server_id).resolve()
-        servers_root = (self.base_config.config_dir / "servers").resolve()
-        if server_root.is_relative_to(servers_root) and server_root.exists():
-            shutil.rmtree(server_root)
+        if server_id == "default":
+            self._delete_default_runtime_data()
+        else:
+            server_root = (self.base_config.config_dir / "servers" / server_id).resolve()
+            servers_root = (self.base_config.config_dir / "servers").resolve()
+            if server_root.is_relative_to(servers_root) and server_root.exists():
+                shutil.rmtree(server_root, ignore_errors=True)
 
     def update_record_meta(self, server_id: str, display_name: str, description: str) -> ServerRecord:
         record = self._record_for(server_id)
@@ -184,6 +192,7 @@ class ServerRegistryService:
             task_manager,
             log_service,
         )
+        database_service = DatabaseService(config.workspace_dir)
         system_metrics_service = SystemMetricsService(config.workspace_dir)
         schedule_service = ScheduleService(config.config_dir / "schedules.json", bot_manager, task_manager, log_service)
 
@@ -199,6 +208,7 @@ class ServerRegistryService:
             bot_manager=bot_manager,
             backup_service=backup_service,
             git_deploy_service=git_deploy_service,
+            database_service=database_service,
             system_metrics_service=system_metrics_service,
             schedule_service=schedule_service,
         )
@@ -225,8 +235,6 @@ class ServerRegistryService:
         ]
         if not records:
             records = [ServerRecord(server_id="default", display_name="Discord-Bot")]
-        if not any(record.server_id == "default" for record in records):
-            records.insert(0, ServerRecord(server_id="default", display_name="Discord-Bot"))
         self._write_records(records)
         return records
 
@@ -247,3 +255,19 @@ class ServerRegistryService:
             if record.server_id == server_id:
                 return record
         return self.records[0]
+
+    def _delete_default_runtime_data(self) -> None:
+        for path in (self.base_config.workspace_dir, self.base_config.log_dir, self.base_config.backup_dir, self.base_config.venv_dir):
+            resolved = path.resolve()
+            if resolved.exists():
+                shutil.rmtree(resolved, ignore_errors=True)
+        self.base_config.ensure_directories()
+
+        config_dir = self.base_config.config_dir.resolve()
+        for item in config_dir.iterdir():
+            if item.name in {"servers", "servers.json"}:
+                continue
+            if item.is_dir():
+                shutil.rmtree(item, ignore_errors=True)
+            else:
+                item.unlink(missing_ok=True)

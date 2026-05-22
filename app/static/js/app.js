@@ -29,6 +29,11 @@ const state = {
     schedules: [],
     metrics: {},
     status: null,
+    databases: [],
+    activeDatabase: null,
+    databaseInspect: null,
+    activeDbTable: "",
+    databaseRows: null,
 };
 
 const els = {};
@@ -101,12 +106,12 @@ function bindAccountMenu() {
 }
 
 async function deleteServer(serverId, serverName) {
-    if (!serverId || serverId === "default") return;
+    if (!serverId) return;
     if (!window.confirm(tr("error.delete_server_confirm", { name: serverName || serverId }))) return;
     try {
-        await api(`/api/servers/${encodeURIComponent(serverId)}`, { method: "DELETE" });
+        const payload = await api(`/api/servers/${encodeURIComponent(serverId)}`, { method: "DELETE" });
         showToastKey("toast.server_deleted");
-        window.location.href = "/";
+        window.location.href = payload.active_server_id ? `/?server_id=${encodeURIComponent(payload.active_server_id)}` : "/";
     } catch (error) {
         showToast(error.message, "error");
     }
@@ -180,6 +185,7 @@ function initializePage() {
     }
 
     if (page === "files") bindFilesPage();
+    if (page === "databases") bindDatabasesPage();
     if (page === "home") bindHomePage();
     if (page === "console") bindConsolePage();
     if (page === "startup") bindStartupPage();
@@ -201,6 +207,7 @@ function getQuickFocusTarget() {
     if (page === "console") return byId("consoleInput");
     if (page === "startup") return byId("startCommandInput") || byId("packageInput");
     if (page === "settings") return byId("panelNameInput");
+    if (page === "databases") return byId("databaseSearchInput");
     if (page === "network") return byId("networkNoteInput");
     if (page === "backups") return byId("createBackupBtn");
     if (page === "schedules") return byId("scheduleNameInput") || byId("newScheduleBtn");
@@ -1083,6 +1090,247 @@ function showWorkspaceReportModal(report, { title, onClose } = {}) {
         onConfirm: () => true,
         onClose,
     });
+}
+
+function bindDatabasesPage() {
+    Object.assign(els, {
+        refreshDatabasesBtn: byId("refreshDatabasesBtn"),
+        databaseSearchInput: byId("databaseSearchInput"),
+        databaseList: byId("databaseList"),
+        databasePathLabel: byId("databasePathLabel"),
+        databaseTitle: byId("databaseTitle"),
+        databaseMeta: byId("databaseMeta"),
+        databaseTableSelect: byId("databaseTableSelect"),
+        reloadTableBtn: byId("reloadTableBtn"),
+        databaseTableWrap: byId("databaseTableWrap"),
+        databaseQueryForm: byId("databaseQueryForm"),
+        databaseQueryInput: byId("databaseQueryInput"),
+        runDatabaseQueryBtn: byId("runDatabaseQueryBtn"),
+        databaseQueryResult: byId("databaseQueryResult"),
+    });
+
+    els.refreshDatabasesBtn?.addEventListener("click", () => refreshDatabases());
+    els.databaseSearchInput?.addEventListener("input", renderDatabaseList);
+    els.databaseList?.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-db-path]");
+        if (button) openDatabase(button.dataset.dbPath);
+    });
+    els.databaseTableSelect?.addEventListener("change", () => openDatabaseTable(els.databaseTableSelect.value));
+    els.reloadTableBtn?.addEventListener("click", () => openDatabaseTable(state.activeDbTable));
+    els.databaseTableWrap?.addEventListener("change", handleDatabaseCellChange);
+    els.databaseQueryForm?.addEventListener("submit", runDatabaseQuery);
+    refreshDatabases();
+}
+
+async function refreshDatabases() {
+    try {
+        const payload = await api("/api/databases");
+        state.databases = payload.items || [];
+        renderDatabaseList();
+        if (state.activeDatabase && !state.databases.some((item) => item.path === state.activeDatabase)) {
+            clearDatabaseView();
+        }
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+function renderDatabaseList() {
+    if (!els.databaseList) return;
+    const query = (els.databaseSearchInput?.value || "").trim().toLowerCase();
+    const items = state.databases.filter((item) => !query || item.path.toLowerCase().includes(query));
+    els.databaseList.innerHTML = items.length
+        ? items.map((item) => `
+            <button class="database-list-item ${state.activeDatabase === item.path ? "is-active" : ""}" type="button" data-db-path="${escapeHtml(item.path)}">
+                <strong>${escapeHtml(item.name)}</strong>
+                <span>${escapeHtml(item.path)}</span>
+                <small>${escapeHtml(item.size_human || "-")} · ${escapeHtml(formatUnixDate(item.modified_at))}</small>
+            </button>
+        `).join("")
+        : `<div class="empty-state">${escapeHtml(tr("databases.empty"))}</div>`;
+}
+
+async function openDatabase(path) {
+    if (!path) return;
+    try {
+        const payload = await api(`/api/databases/inspect?path=${encodeURIComponent(path)}`);
+        state.activeDatabase = payload.path;
+        state.databaseInspect = payload;
+        state.activeDbTable = payload.tables?.[0]?.name || "";
+        if (els.databasePathLabel) els.databasePathLabel.textContent = payload.path || "/";
+        if (els.databaseTitle) els.databaseTitle.textContent = payload.name || payload.path || tr("databases.select_title");
+        if (els.databaseMeta) els.databaseMeta.textContent = payload.tables?.length
+            ? `${tr("databases.tables")}: ${payload.tables.map((table) => table.name).join(", ")}`
+            : tr("databases.no_tables");
+        renderDatabaseList();
+        renderDatabaseTableSelect();
+        setDatabaseControlsEnabled(true);
+        if (state.activeDbTable) await openDatabaseTable(state.activeDbTable);
+        else renderDatabaseTableEmpty(tr("databases.no_tables"));
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+function renderDatabaseTableSelect() {
+    if (!els.databaseTableSelect) return;
+    const tables = state.databaseInspect?.tables || [];
+    els.databaseTableSelect.innerHTML = tables.map((table) => `
+        <option value="${escapeHtml(table.name)}">${escapeHtml(table.name)} (${escapeHtml(table.type)})</option>
+    `).join("");
+    els.databaseTableSelect.value = state.activeDbTable || "";
+    els.databaseTableSelect.disabled = !tables.length;
+}
+
+async function openDatabaseTable(tableName) {
+    if (!state.activeDatabase || !tableName) return;
+    state.activeDbTable = tableName;
+    if (els.databaseTableSelect) els.databaseTableSelect.value = tableName;
+    try {
+        const payload = await api(`/api/databases/table?path=${encodeURIComponent(state.activeDatabase)}&table=${encodeURIComponent(tableName)}&limit=100`);
+        state.databaseRows = payload;
+        renderDatabaseRows(payload);
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+function renderDatabaseRows(payload) {
+    if (!els.databaseTableWrap) return;
+    const columns = payload.columns || [];
+    const rows = payload.rows || [];
+    const tableMeta = (state.databaseInspect?.tables || []).find((item) => item.name === payload.table);
+    if (!columns.length) {
+        renderDatabaseTableEmpty(tr("databases.no_tables"));
+        return;
+    }
+    const countText = tr("databases.rows", { count: payload.total ?? rows.length });
+    const readonlyText = tableMeta?.editable ? "" : `<p class="surface-note">${escapeHtml(tr("databases.readonly"))}</p>`;
+    els.databaseTableWrap.innerHTML = `
+        <div class="database-table-meta">
+            <strong>${escapeHtml(payload.table)}</strong>
+            <span>${escapeHtml(countText)}</span>
+        </div>
+        ${readonlyText}
+        <div class="table-wrap database-scroll-table">
+            <table class="data-table database-data-table">
+                <thead>
+                    <tr>
+                        <th>rowid</th>
+                        ${columns.map((column) => `<th>${escapeHtml(column.name)}<small>${escapeHtml(column.type || "")}</small></th>`).join("")}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows.map((row) => `
+                        <tr>
+                            <td><span class="code-pill">${escapeHtml(row.__rowid__)}</span></td>
+                            ${columns.map((column) => renderDatabaseCell(row, column, Boolean(tableMeta?.editable))).join("")}
+                        </tr>
+                    `).join("") || `<tr><td colspan="${columns.length + 1}"><div class="empty-state">${escapeHtml(tr("databases.empty"))}</div></td></tr>`}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function renderDatabaseCell(row, column, editable) {
+    const value = row[column.name];
+    const text = value === null || value === undefined ? "" : String(value);
+    if (!editable || column.primary_key) {
+        return `<td>${escapeHtml(value === null || value === undefined ? tr("databases.null_value") : text)}</td>`;
+    }
+    return `
+        <td>
+            <input class="database-cell-input" type="text"
+                value="${escapeHtml(text)}"
+                data-rowid="${escapeHtml(row.__rowid__)}"
+                data-column="${escapeHtml(column.name)}"
+                data-original="${escapeHtml(text)}">
+        </td>
+    `;
+}
+
+async function handleDatabaseCellChange(event) {
+    const input = event.target.closest(".database-cell-input");
+    if (!input || !state.activeDatabase || !state.activeDbTable) return;
+    if (input.value === input.dataset.original) return;
+    try {
+        const payload = await api("/api/databases/cell", {
+            method: "PUT",
+            body: JSON.stringify({
+                path: state.activeDatabase,
+                table: state.activeDbTable,
+                rowid: Number(input.dataset.rowid),
+                column: input.dataset.column,
+                value: input.value,
+            }),
+        });
+        state.databaseRows = payload;
+        input.dataset.original = input.value;
+        showToastKey("databases.saved");
+    } catch (error) {
+        input.value = input.dataset.original || "";
+        showToast(error.message, "error");
+    }
+}
+
+async function runDatabaseQuery(event) {
+    event.preventDefault();
+    if (!state.activeDatabase) return;
+    const sql = (els.databaseQueryInput?.value || "").trim();
+    if (!sql) return;
+    try {
+        const payload = await api("/api/databases/query", {
+            method: "POST",
+            body: JSON.stringify({ path: state.activeDatabase, sql }),
+        });
+        renderDatabaseQueryResult(payload);
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+function renderDatabaseQueryResult(payload) {
+    if (!els.databaseQueryResult) return;
+    const columns = payload.columns || [];
+    const rows = payload.rows || [];
+    if (!columns.length) {
+        els.databaseQueryResult.innerHTML = `<div class="empty-state">${escapeHtml(tr("databases.query_empty"))}</div>`;
+        return;
+    }
+    els.databaseQueryResult.innerHTML = `
+        <div class="table-wrap database-scroll-table">
+            <table class="data-table database-data-table">
+                <thead><tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr></thead>
+                <tbody>
+                    ${rows.map((row) => `<tr>${columns.map((column) => `<td>${escapeHtml(row[column] ?? "")}</td>`).join("")}</tr>`).join("")}
+                </tbody>
+            </table>
+        </div>
+        ${payload.truncated ? `<p class="surface-note">500 rows shown.</p>` : ""}
+    `;
+}
+
+function renderDatabaseTableEmpty(message) {
+    if (els.databaseTableWrap) els.databaseTableWrap.innerHTML = `<div class="empty-state">${escapeHtml(message)}</div>`;
+}
+
+function clearDatabaseView() {
+    state.activeDatabase = null;
+    state.databaseInspect = null;
+    state.activeDbTable = "";
+    state.databaseRows = null;
+    if (els.databasePathLabel) els.databasePathLabel.textContent = tr("databases.no_selection");
+    if (els.databaseTitle) els.databaseTitle.textContent = tr("databases.select_title");
+    if (els.databaseMeta) els.databaseMeta.textContent = tr("databases.select_hint");
+    renderDatabaseTableEmpty(tr("databases.empty"));
+    setDatabaseControlsEnabled(false);
+}
+
+function setDatabaseControlsEnabled(enabled) {
+    if (els.reloadTableBtn) els.reloadTableBtn.disabled = !enabled;
+    if (els.databaseQueryInput) els.databaseQueryInput.disabled = !enabled;
+    if (els.runDatabaseQueryBtn) els.runDatabaseQueryBtn.disabled = !enabled;
 }
 
 function bindFilesPage() {
