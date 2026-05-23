@@ -121,6 +121,45 @@ class TaskManager:
         command = self._validate_console_command(command_text)
         return await self._start_task("console", command_text, command, self.config.workspace_dir)
 
+    async def record_bot_action(
+        self,
+        action: str,
+        command_text: str,
+        payload: dict | None = None,
+        error: str | None = None,
+    ) -> dict:
+        title = {
+            "start": "Bot starten",
+            "stop": "Bot stoppen",
+            "restart": "Bot neu starten",
+        }.get(action, f"Bot {action}")
+        command = [command_text] if command_text else [title]
+        task = await self._create_task("bot_action", title, command, self.config.workspace_dir)
+        task.status = "failed" if error else "success"
+        task.started_at = utc_now()
+        task.finished_at = utc_now()
+        task.exit_code = 1 if error else 0
+        if command_text:
+            task.output_lines.append(f"$ {command_text}")
+        if error:
+            task.output_lines.append(f"Fehler: {error}")
+        else:
+            state = payload.get("state") if payload else None
+            pid = payload.get("pid") if payload else None
+            last_command = payload.get("last_command") if payload else None
+            if action == "start":
+                task.output_lines.append(f"Bot gestartet{f' mit PID {pid}' if pid else ''}.")
+            elif action == "stop":
+                task.output_lines.append("Bot gestoppt.")
+            elif action == "restart":
+                task.output_lines.append(f"Bot neu gestartet{f' mit PID {pid}' if pid else ''}.")
+            if state:
+                task.output_lines.append(f"Status: {state}")
+            if last_command and last_command != command_text:
+                task.output_lines.append(f"Ausgefuehrt: {last_command}")
+        await self.log_service.write("system", f"Console-Task erfasst: {title}")
+        return task.serialize()
+
     async def shutdown(self) -> None:
         for task in self._tasks.values():
             if task.runner and not task.runner.done():
@@ -131,6 +170,11 @@ class TaskManager:
         )
 
     async def _start_task(self, kind: str, title: str, command: list[str], cwd: Path) -> dict:
+        task = await self._create_task(kind, title, command, cwd)
+        task.runner = asyncio.create_task(self._run_task(task))
+        return task.serialize()
+
+    async def _create_task(self, kind: str, title: str, command: list[str], cwd: Path) -> ManagedTask:
         task_id = uuid.uuid4().hex[:10]
         task = ManagedTask(
             task_id=task_id,
@@ -142,8 +186,7 @@ class TaskManager:
         )
         self._tasks[task_id] = task
         self._task_order.append(task_id)
-        task.runner = asyncio.create_task(self._run_task(task))
-        return task.serialize()
+        return task
 
     async def _run_task(self, task: ManagedTask) -> None:
         async with self._task_lock:

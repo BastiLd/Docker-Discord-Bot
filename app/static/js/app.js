@@ -391,6 +391,10 @@ async function controlBot(action) {
     try {
         await api(`/api/bot/${action}`, { method: "POST" });
         await refreshStatus({ silent: true });
+        if (els.taskList && els.taskOutput) {
+            state.activeTaskId = null;
+            await refreshTasks({ silent: true });
+        }
         if (page === "dashboard" || page === "activity") {
             await refreshHistory({ silent: true });
         }
@@ -445,12 +449,18 @@ async function refreshMetrics({ silent = false } = {}) {
 
 function renderMetrics(payload = {}) {
     const currentState = state.status?.state || "unknown";
-    setText(els.metricCpuPrimary, `${payload.bot_cpu_percent ?? 0}%`);
+    setText(els.metricCpuPrimary, `${formatPercent(payload.bot_cpu_percent, 2)}%`);
     setText(els.metricCpuSecondary, tr(`status.${currentState}`));
     setText(els.metricMemoryPrimary, payload.bot_memory_used_human || tr("common.none"));
     setText(els.metricMemorySecondary, payload.memory_total_bytes ? `${tr("dashboard.host_memory")}: ${formatUsage(payload.memory_used_human, payload.memory_total_human)}` : tr("common.none"));
     setText(els.metricDiskPrimary, payload.workspace_used_human || tr("common.none"));
     setText(els.metricDiskSecondary, `${tr("dashboard.host_disk")}: ${formatUsage(payload.disk_used_human, payload.disk_total_human)}`);
+}
+
+function formatPercent(value, digits = 2) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return (0).toFixed(digits);
+    return number.toFixed(digits);
 }
 
 function formatUsage(used, total) {
@@ -1044,11 +1054,11 @@ function renderTaskOutput(task = null) {
     if (!els.taskOutput) return;
     const output = state.activeTaskOutput || "";
     if (!output) {
-        els.taskOutput.textContent = tr("error.task_empty");
+        renderTerminalOutput(els.taskOutput, tr("error.task_empty"));
         return;
     }
     const filtered = filterConsoleOutput(output, state.consoleFilter, task);
-    els.taskOutput.textContent = filtered || tr("console.filter_empty");
+    renderTerminalOutput(els.taskOutput, filtered || tr("console.filter_empty"));
 }
 
 function filterConsoleOutput(output, filter, task = null) {
@@ -2603,7 +2613,7 @@ function renderLogSurfaces() {
 
     if (els.logOutput) {
         const buffer = state.logBuffers[state.logTab] || [];
-        els.logOutput.textContent = buffer.length ? buffer.join("\n") : tr("activity.waiting");
+        renderTerminalOutput(els.logOutput, buffer.length ? buffer.join("\n") : tr("activity.waiting"));
     }
 
     if (els.downloadLogsLink) {
@@ -2768,4 +2778,27 @@ function escapeHtml(value) {
         .replace(/>/g, "&gt;")
         .replace(/\"/g, "&quot;")
         .replace(/'/g, "&#39;");
+}
+
+function renderTerminalOutput(node, text) {
+    if (!node) return;
+    const lines = String(text ?? "").split(/\r?\n/);
+    node.innerHTML = lines
+        .map((line) => `<span class="terminal-line ${terminalLineClass(line)}">${escapeHtml(line || " ")}</span>`)
+        .join("\n");
+}
+
+function terminalLineClass(line) {
+    const value = String(line || "");
+    if (/^\s*[>$#]/.test(value) || /^\$\s/.test(value)) return "terminal-line-command";
+    if (/(traceback|exception|fatal|failed|error|fehler|fehlgeschlagen|crashed|abgestuerzt|abgestürzt)/i.test(value)) {
+        return "terminal-line-error";
+    }
+    if (/(warn|warning|deprecated|achtung)/i.test(value)) return "terminal-line-warning";
+    if (/(success|done|installed|ok|erfolgreich|gestartet|started|finished|beendet)/i.test(value)) {
+        return "terminal-line-success";
+    }
+    if (/(task|status|system|pid|runtime|prozess|process|console-task)/i.test(value)) return "terminal-line-system";
+    if (/^[\w.-]+@[\w.-]+[~:/\w.-]*[$#]/.test(value)) return "terminal-line-prompt";
+    return "terminal-line-plain";
 }

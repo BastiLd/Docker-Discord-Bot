@@ -410,28 +410,40 @@ async def get_app_update(request: Request) -> JSONResponse:
 
 @router.post("/api/bot/start")
 async def start_bot(request: Request) -> JSONResponse:
+    runtime = _services(request)
+    command_text = runtime.settings_service.get().start_command
     try:
-        payload = await _services(request).bot_manager.start()
+        payload = await runtime.bot_manager.start()
     except Exception as exc:  # noqa: BLE001
+        await runtime.task_manager.record_bot_action("start", command_text, error=str(exc))
         _raise_bad_request(exc)
+    await runtime.task_manager.record_bot_action("start", payload.get("last_command") or command_text, payload=payload)
     return JSONResponse(payload)
 
 
 @router.post("/api/bot/stop")
 async def stop_bot(request: Request) -> JSONResponse:
+    runtime = _services(request)
+    command_text = "stop bot"
     try:
-        payload = await _services(request).bot_manager.stop()
+        payload = await runtime.bot_manager.stop()
     except Exception as exc:  # noqa: BLE001
+        await runtime.task_manager.record_bot_action("stop", command_text, error=str(exc))
         _raise_bad_request(exc)
+    await runtime.task_manager.record_bot_action("stop", command_text, payload=payload)
     return JSONResponse(payload)
 
 
 @router.post("/api/bot/restart")
 async def restart_bot(request: Request) -> JSONResponse:
+    runtime = _services(request)
+    command_text = runtime.settings_service.get().start_command
     try:
-        payload = await _services(request).bot_manager.restart()
+        payload = await runtime.bot_manager.restart()
     except Exception as exc:  # noqa: BLE001
+        await runtime.task_manager.record_bot_action("restart", command_text, error=str(exc))
         _raise_bad_request(exc)
+    await runtime.task_manager.record_bot_action("restart", payload.get("last_command") or command_text, payload=payload)
     return JSONResponse(payload)
 
 

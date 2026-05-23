@@ -1310,6 +1310,17 @@ button {
     grid-template-columns: minmax(0, 1fr) 330px;
 }
 
+.startup-task-stack {
+    display: grid;
+    gap: 18px;
+}
+
+.startup-task-card {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+}
+
 .startup-top-grid {
     grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
 }
@@ -2794,13 +2805,61 @@ body[data-page="databases"] {
 .console-terminal {
     min-height: 0;
     overflow-y: auto;
-    padding: 18px 20px;
+    padding: 18px 20px max(180px, 28vh);
     border-radius: var(--radius-control);
     background: #0a0c19;
     border: 1px solid rgba(255, 255, 255, 0.07);
     line-height: 1.5;
     white-space: pre;
     word-break: normal;
+    color: #eef1ff;
+    font-family: var(--font-mono);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+.activity-terminal {
+    padding-bottom: max(180px, 28vh);
+    background: #0a0c19;
+    color: #eef1ff;
+    font-family: var(--font-mono);
+}
+
+.startup-task-terminal {
+    height: min(620px, calc(100vh - 230px));
+    max-height: 720px;
+    min-height: 420px;
+    margin-top: 0;
+    overflow: auto;
+}
+
+.terminal-line {
+    display: inline;
+}
+
+.terminal-line-command,
+.terminal-line-prompt {
+    color: #f0bb4e;
+    font-weight: 700;
+}
+
+.terminal-line-error {
+    color: #ff7d7d;
+}
+
+.terminal-line-warning {
+    color: #ffd166;
+}
+
+.terminal-line-success {
+    color: #87e6a0;
+}
+
+.terminal-line-system {
+    color: #9fb8ff;
+}
+
+.terminal-line-plain {
+    color: #eef1ff;
 }
 
 .console-bottom-grid {

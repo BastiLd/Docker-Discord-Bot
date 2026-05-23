@@ -161,25 +161,22 @@
     </article>
 </section>
 
-<section class="split-main task-layout">
-    <article class="surface side-surface">
+<section class="startup-task-stack">
+    <article class="surface startup-task-card">
         <div class="surface-header">
             <div class="title-block">
                 <p class="section-label">{{ ui["startup.tasks"] }}</p>
                 <h2>{{ ui["startup.tasks"] }}</h2>
             </div>
         </div>
-        <div class="task-list" id="taskList"></div>
-    </article>
-
-    <article class="surface">
+        <div class="task-list task-list-wide" id="taskList"></div>
         <div class="surface-header">
             <div class="title-block">
                 <p class="section-label">{{ ui["startup.output"] }}</p>
                 <h2>{{ ui["startup.output"] }}</h2>
             </div>
         </div>
-        <pre class="terminal-output console-terminal" id="taskOutput">{{ ui["console.empty"] }}</pre>
+        <pre class="terminal-output activity-terminal startup-task-terminal" id="taskOutput">{{ ui["console.empty"] }}</pre>
     </article>
 </section>
 {% endblock %}

@@ -42,7 +42,7 @@ jobs:
           images: ${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=0.1.7,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=0.1.8,enable=${{ github.ref == 'refs/heads/main' }}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
@@ -53,8 +53,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           build-args: |
-            APP_VERSION=0.1.7
-            APP_IMAGE_TAG=0.1.7
+            APP_VERSION=0.1.8
+            APP_IMAGE_TAG=0.1.8
             APP_BUILD_SHA=${{ github.sha }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
