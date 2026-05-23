@@ -155,6 +155,7 @@ function collectBaseElements() {
         accountMenu: byId("accountMenu"),
         deleteActiveServerBtn: byId("deleteActiveServerBtn"),
         globalActionButtons: queryAll("[data-bot-action]"),
+        serverAvatar: queryAll(".server-avatar"),
         serverNameLabels: queryAll(".server-name"),
         statusBadges: queryAll('[data-status-field="badge"]'),
         statusStateTexts: queryAll('[data-status-field="state_text"]'),
@@ -388,6 +389,22 @@ async function controlBot(action) {
         restart: "toast.bot_restarted",
     }[action];
 
+    // Set immediate loading states in UI
+    if (action === "start" || action === "restart") {
+        els.serverAvatar?.forEach((el) => {
+            el.className = "server-avatar is-starting";
+        });
+        const startBtn = document.querySelector(".action-start");
+        if (startBtn) {
+            startBtn.classList.remove("is-running");
+            startBtn.classList.add("is-starting");
+        }
+    } else if (action === "stop") {
+        els.serverAvatar?.forEach((el) => {
+            el.className = "server-avatar is-stopping";
+        });
+    }
+
     try {
         await api(`/api/bot/${action}`, { method: "POST" });
         await refreshStatus({ silent: true });
@@ -401,6 +418,7 @@ async function controlBot(action) {
         showToastKey(messageKey || "toast.bot_started");
     } catch (error) {
         showToast(error.message, "error");
+        await refreshStatus({ silent: true });
     }
 }
 
@@ -436,6 +454,22 @@ function renderStatus(payload) {
         badge.className = `status-pill ${current.className}`;
     });
     if (payload.last_command) state.settings.start_command = payload.last_command;
+
+    // Update server-avatar class based on state
+    els.serverAvatar?.forEach((el) => {
+        el.className = `server-avatar is-${payload.state}`;
+    });
+
+    // Update action-start button class based on state
+    const startBtn = document.querySelector(".action-start");
+    if (startBtn) {
+        startBtn.classList.remove("is-starting");
+        if (payload.state === "running") {
+            startBtn.classList.add("is-running");
+        } else {
+            startBtn.classList.remove("is-running");
+        }
+    }
 }
 
 async function refreshMetrics({ silent = false } = {}) {

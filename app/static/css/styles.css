@@ -254,7 +254,79 @@ button {
     width: 30px;
     height: 30px;
     border-radius: 7px;
-    background: rgba(163, 57, 65, 0.55);
+    background: rgba(163, 57, 65, 0.85);
+    transition: all 0.4s ease;
+    box-shadow: 0 0 0 rgba(163, 57, 65, 0);
+}
+
+.server-avatar.is-running {
+    background: #5faf4d;
+    box-shadow: 0 0 10px rgba(95, 175, 77, 0.5);
+}
+
+.server-avatar.is-starting {
+    background: #ff9f43;
+    animation: avatar-starting-pulse 1.2s infinite ease-in-out;
+}
+
+.server-avatar.is-stopping {
+    background: #b23e45;
+    animation: avatar-stopping-pulse 1.2s infinite ease-in-out;
+}
+
+.server-avatar.is-crashed {
+    background: #a33941;
+    animation: avatar-crashed-pulse 1.5s infinite ease-in-out;
+}
+
+.server-avatar.is-stopped {
+    background: rgba(163, 57, 65, 0.85);
+}
+
+/* Animations for dynamic server-avatar states */
+@keyframes avatar-starting-pulse {
+    0% {
+        background-color: #ff9f43;
+        box-shadow: 0 0 0 0 rgba(255, 159, 67, 0.7);
+    }
+    50% {
+        background-color: #ffb86c;
+        box-shadow: 0 0 8px 4px rgba(255, 159, 67, 0.3);
+    }
+    100% {
+        background-color: #ff9f43;
+        box-shadow: 0 0 0 0 rgba(255, 159, 67, 0);
+    }
+}
+
+@keyframes avatar-stopping-pulse {
+    0% {
+        background-color: #b23e45;
+        box-shadow: 0 0 0 0 rgba(178, 62, 69, 0.7);
+    }
+    50% {
+        background-color: #d85f67;
+        box-shadow: 0 0 8px 4px rgba(178, 62, 69, 0.3);
+    }
+    100% {
+        background-color: #b23e45;
+        box-shadow: 0 0 0 0 rgba(178, 62, 69, 0);
+    }
+}
+
+@keyframes avatar-crashed-pulse {
+    0% {
+        background-color: #a33941;
+        box-shadow: 0 0 0 0 rgba(163, 57, 65, 0.7);
+    }
+    50% {
+        background-color: #d15661;
+        box-shadow: 0 0 10px 5px rgba(163, 57, 65, 0.4);
+    }
+    100% {
+        background-color: #a33941;
+        box-shadow: 0 0 0 0 rgba(163, 57, 65, 0);
+    }
 }
 
 .server-copy {
@@ -312,6 +384,31 @@ button {
 
 .action-start {
     background: var(--success);
+    transition: all 0.3s ease;
+}
+
+.action-start.is-running {
+    background: #6bc35a;
+    box-shadow: 0 0 15px rgba(107, 195, 90, 0.5);
+    animation: start-running-pulse 2s infinite ease-in-out;
+}
+
+.action-start.is-starting {
+    background: #ff9f43;
+    box-shadow: 0 0 12px rgba(255, 159, 67, 0.4);
+    pointer-events: none;
+}
+
+@keyframes start-running-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(107, 195, 90, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 12px 3px rgba(107, 195, 90, 0.2);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(107, 195, 90, 0.5);
+    }
 }
 
 .action-restart {
