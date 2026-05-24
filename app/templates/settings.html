@@ -122,7 +122,21 @@
                 <input id="gitRestartInput" type="checkbox">
                 <span>{{ ui["git.restart_after_update"] }}</span>
             </label>
+            <label class="checkbox-field">
+                <input id="gitKeepUserDataInput" type="checkbox">
+                <span>{{ ui["git.keep_user_data"] }}</span>
+            </label>
         </div>
+        <fieldset class="kb-fieldset" id="gitProtectedSection">
+            <legend>{{ ui["git.protected_paths"] }}</legend>
+            <p class="surface-note">{{ ui["git.protected_paths_help"] }}</p>
+            <div class="git-protected-list" id="gitProtectedList">
+                <p class="surface-note" id="gitProtectedEmpty">{{ ui["git.protected_paths_empty"] }}</p>
+            </div>
+            <div class="card-actions card-actions-end">
+                <button class="btn btn-secondary" id="refreshProtectedBtn" type="button">{{ ui["git.protected_refresh"] }}</button>
+            </div>
+        </fieldset>
         <dl class="info-table compact-table">
             <div>
                 <dt>{{ ui["git.status"] }}</dt>

@@ -5,6 +5,7 @@ import json
 import os
 import re
 import shutil
+import tempfile
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -18,6 +19,8 @@ from app.services.task_manager import TaskManager
 
 GITHUB_REPO_PATTERN = re.compile(r"^https://github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?/?$")
 BRANCH_PATTERN = re.compile(r"^[A-Za-z0-9._/-]+$")
+PROTECTED_PATH_PATTERN = re.compile(r"^[A-Za-z0-9_.\-][A-Za-z0-9_.\- ]*$")
+DEFAULT_PROTECTED_PATHS: tuple[str, ...] = (".env", "data", "config", "logs")
 
 
 class GitDeployService:
@@ -44,11 +47,14 @@ class GitDeployService:
     def get(self) -> dict:
         payload = self._settings.model_dump(mode="json")
         payload["workspace_report"] = self.workspace_report()
+        payload["workspace_entries"] = self.workspace_entries()
+        payload["default_protected_paths"] = list(DEFAULT_PROTECTED_PATHS)
         return payload
 
     def update(self, payload: GitDeployUpdateRequest) -> dict:
         repo_url = self._normalize_repo_url(payload.repo_url)
         branch = self._validate_branch(payload.branch)
+        protected = self._normalize_protected_paths(payload.protected_paths)
         self._settings = self._settings.model_copy(
             update={
                 "repo_url": repo_url,
@@ -56,6 +62,8 @@ class GitDeployService:
                 "auto_update": payload.auto_update,
                 "install_requirements": payload.install_requirements,
                 "restart_after_update": payload.restart_after_update,
+                "keep_user_data": payload.keep_user_data,
+                "protected_paths": protected,
                 "status": "configured" if repo_url else "not_configured",
                 "message": "",
             }
@@ -94,12 +102,13 @@ class GitDeployService:
 
             backup = self.backup_service.create_backup()
             await self.log_service.write("system", f"Backup vor Git-Import erstellt: {backup['name']}")
-            env_path = self.workspace_dir / ".env"
-            existing_env = env_path.read_text(encoding="utf-8", errors="replace") if env_path.exists() else ""
-            self._clear_workspace()
-            await self._run_git(["git", "clone", "--branch", branch, "--single-branch", repo_url, "."], cwd=self.workspace_dir)
-            if existing_env and not env_path.exists():
-                env_path.write_text(existing_env, encoding="utf-8")
+
+            preserved_paths = self._effective_protected_paths()
+            with tempfile.TemporaryDirectory(prefix="git-deploy-keep-") as keep_dir:
+                preserved = self._stash_protected(Path(keep_dir), preserved_paths)
+                self._clear_workspace()
+                await self._run_git(["git", "clone", "--branch", branch, "--single-branch", repo_url, "."], cwd=self.workspace_dir)
+                self._restore_protected(Path(keep_dir), preserved)
             local_commit = await self._local_commit()
 
             if self._settings.install_requirements:
@@ -109,13 +118,16 @@ class GitDeployService:
                 await self.bot_manager.start()
 
             report = self.workspace_report()
+            base_message = "Repository importiert."
+            if preserved:
+                base_message += f" Behaltene Pfade: {', '.join(preserved)}."
             self._settings = self._settings.model_copy(
                 update={
                     "last_commit": local_commit,
                     "last_remote_commit": local_commit,
                     "last_updated_at": isoformat(utc_now()),
                     "status": "imported",
-                    "message": self._message_with_report("Repository importiert.", report),
+                    "message": self._message_with_report(base_message, report),
                 }
             )
             self._save()
@@ -134,11 +146,16 @@ class GitDeployService:
 
             backup = self.backup_service.create_backup()
             await self.log_service.write("system", f"Backup vor Git-Update erstellt: {backup['name']}")
-            await self._run_git(["git", "remote", "set-url", "origin", repo_url], cwd=self.workspace_dir)
-            await self._run_git(["git", "fetch", "--prune", "origin", branch], cwd=self.workspace_dir)
-            await self._run_git(["git", "checkout", "-B", branch, f"origin/{branch}"], cwd=self.workspace_dir)
-            await self._run_git(["git", "reset", "--hard", f"origin/{branch}"], cwd=self.workspace_dir)
-            await self._run_git(["git", "clean", "-fd"], cwd=self.workspace_dir)
+
+            preserved_paths = self._effective_protected_paths()
+            with tempfile.TemporaryDirectory(prefix="git-deploy-keep-") as keep_dir:
+                preserved = self._stash_protected(Path(keep_dir), preserved_paths)
+                await self._run_git(["git", "remote", "set-url", "origin", repo_url], cwd=self.workspace_dir)
+                await self._run_git(["git", "fetch", "--prune", "origin", branch], cwd=self.workspace_dir)
+                await self._run_git(["git", "checkout", "-B", branch, f"origin/{branch}"], cwd=self.workspace_dir)
+                await self._run_git(["git", "reset", "--hard", f"origin/{branch}"], cwd=self.workspace_dir)
+                await self._run_git(["git", "clean", "-fd"], cwd=self.workspace_dir)
+                self._restore_protected(Path(keep_dir), preserved)
             local_commit = await self._local_commit()
 
             if self._settings.install_requirements:
@@ -148,13 +165,16 @@ class GitDeployService:
                 await self.bot_manager.start()
 
             report = self.workspace_report()
+            base_message = "Repository aktualisiert."
+            if preserved:
+                base_message += f" Behaltene Pfade: {', '.join(preserved)}."
             self._settings = self._settings.model_copy(
                 update={
                     "last_commit": local_commit,
                     "last_remote_commit": local_commit,
                     "last_updated_at": isoformat(utc_now()),
                     "status": "updated",
-                    "message": self._message_with_report("Repository aktualisiert.", report),
+                    "message": self._message_with_report(base_message, report),
                 }
             )
             self._save()
@@ -217,6 +237,81 @@ class GitDeployService:
                 shutil.rmtree(item)
             else:
                 item.unlink()
+
+    def _normalize_protected_paths(self, raw_paths: list[str] | None) -> list[str]:
+        seen: set[str] = set()
+        result: list[str] = []
+        for raw in raw_paths or []:
+            cleaned = self._validate_protected_path(raw)
+            if cleaned and cleaned not in seen:
+                seen.add(cleaned)
+                result.append(cleaned)
+        return result
+
+    @staticmethod
+    def _validate_protected_path(value: str) -> str:
+        candidate = (value or "").strip().strip("/").strip("\\")
+        if not candidate:
+            return ""
+        if candidate in {".", ".."} or "/" in candidate or "\\" in candidate:
+            raise ValueError(f"Geschützter Pfad ist ungültig: {value!r}")
+        if not PROTECTED_PATH_PATTERN.match(candidate):
+            raise ValueError(f"Geschützter Pfad enthält ungültige Zeichen: {value!r}")
+        if candidate == ".git":
+            raise ValueError("Der Ordner .git darf nicht als geschützter Pfad ausgewählt werden.")
+        return candidate
+
+    def _effective_protected_paths(self) -> list[str]:
+        if not self._settings.keep_user_data:
+            return []
+        return list(self._settings.protected_paths or [])
+
+    def workspace_entries(self) -> list[dict]:
+        if not self.workspace_dir.exists():
+            return []
+        entries: list[dict] = []
+        for item in sorted(self.workspace_dir.iterdir(), key=lambda entry: (entry.is_file(), entry.name.lower())):
+            if item.name == ".git":
+                continue
+            entries.append(
+                {
+                    "name": item.name,
+                    "kind": "directory" if item.is_dir() else "file",
+                }
+            )
+        return entries
+
+    def _stash_protected(self, keep_dir: Path, requested: list[str]) -> list[str]:
+        preserved: list[str] = []
+        for name in requested:
+            source = self.workspace_dir / name
+            if not source.exists():
+                continue
+            destination = keep_dir / name
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            if source.is_dir():
+                shutil.copytree(source, destination, symlinks=True)
+            else:
+                shutil.copy2(source, destination)
+            preserved.append(name)
+        return preserved
+
+    def _restore_protected(self, keep_dir: Path, preserved: list[str]) -> None:
+        for name in preserved:
+            source = keep_dir / name
+            if not source.exists():
+                continue
+            destination = self.workspace_dir / name
+            if destination.exists():
+                if destination.is_dir():
+                    shutil.rmtree(destination)
+                else:
+                    destination.unlink()
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            if source.is_dir():
+                shutil.copytree(source, destination, symlinks=True)
+            else:
+                shutil.copy2(source, destination)
 
     def workspace_report(self) -> dict:
         expected_entrypoint = self._expected_entrypoint()

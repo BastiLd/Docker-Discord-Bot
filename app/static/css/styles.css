@@ -3580,3 +3580,38 @@ body[data-page="console"] .mascot-help-button {
         font-size: 0.74rem;
     }
 }
+
+/* Git deployment: protected paths fieldset */
+.kb-fieldset {
+    border: 1px solid var(--divider);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin: 18px 0 0;
+    display: grid;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.kb-fieldset > legend {
+    padding: 0 8px;
+    font-size: 0.85rem;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.kb-fieldset.is-disabled {
+    opacity: 0.55;
+}
+
+.git-protected-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px 14px;
+}
+
+.git-protected-list .checkbox-field {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 6px 10px;
+    border-radius: 8px;
+}

@@ -518,6 +518,11 @@ function bindSettingsPage() {
         gitAutoUpdateInput: byId("gitAutoUpdateInput"),
         gitInstallDepsInput: byId("gitInstallDepsInput"),
         gitRestartInput: byId("gitRestartInput"),
+        gitKeepUserDataInput: byId("gitKeepUserDataInput"),
+        gitProtectedSection: byId("gitProtectedSection"),
+        gitProtectedList: byId("gitProtectedList"),
+        gitProtectedEmpty: byId("gitProtectedEmpty"),
+        refreshProtectedBtn: byId("refreshProtectedBtn"),
         gitStatusText: byId("gitStatusText"),
         gitLocalCommitText: byId("gitLocalCommitText"),
         gitRemoteCommitText: byId("gitRemoteCommitText"),
@@ -725,6 +730,11 @@ function bindStartupPage() {
         gitAutoUpdateInput: byId("gitAutoUpdateInput"),
         gitInstallDepsInput: byId("gitInstallDepsInput"),
         gitRestartInput: byId("gitRestartInput"),
+        gitKeepUserDataInput: byId("gitKeepUserDataInput"),
+        gitProtectedSection: byId("gitProtectedSection"),
+        gitProtectedList: byId("gitProtectedList"),
+        gitProtectedEmpty: byId("gitProtectedEmpty"),
+        refreshProtectedBtn: byId("refreshProtectedBtn"),
         gitStatusText: byId("gitStatusText"),
         gitLocalCommitText: byId("gitLocalCommitText"),
         gitRemoteCommitText: byId("gitRemoteCommitText"),
@@ -771,6 +781,8 @@ function bindGitDeployButtons() {
         await runGitAction("/api/git-deploy/update", "toast.git_updated");
         await refreshFilesIfVisible();
     });
+    els.refreshProtectedBtn?.addEventListener("click", () => refreshGitDeploy({ silent: false }));
+    els.gitKeepUserDataInput?.addEventListener("change", () => updateProtectedSectionDisabled());
 }
 
 function applyGitDeployToForm() {
@@ -780,10 +792,76 @@ function applyGitDeployToForm() {
     if (els.gitAutoUpdateInput) els.gitAutoUpdateInput.checked = Boolean(payload.auto_update);
     if (els.gitInstallDepsInput) els.gitInstallDepsInput.checked = payload.install_requirements !== false;
     if (els.gitRestartInput) els.gitRestartInput.checked = payload.restart_after_update !== false;
+    if (els.gitKeepUserDataInput) els.gitKeepUserDataInput.checked = payload.keep_user_data !== false;
     if (els.gitStatusText) els.gitStatusText.textContent = renderGitStatus(payload.status);
     if (els.gitLocalCommitText) els.gitLocalCommitText.textContent = shortCommit(payload.last_commit);
     if (els.gitRemoteCommitText) els.gitRemoteCommitText.textContent = shortCommit(payload.last_remote_commit);
     if (els.gitMessageText) els.gitMessageText.textContent = payload.message || tr("common.none");
+    renderProtectedPaths();
+    updateProtectedSectionDisabled();
+}
+
+function renderProtectedPaths() {
+    if (!els.gitProtectedList) return;
+    const payload = state.gitDeploy || {};
+    const entries = Array.isArray(payload.workspace_entries) ? payload.workspace_entries : [];
+    const defaults = new Set((payload.default_protected_paths || []).map((value) => String(value)));
+    const stored = Array.isArray(payload.protected_paths) ? payload.protected_paths.map((value) => String(value)) : [];
+    const isImported = entries.length > 0;
+    const initialized = Boolean(payload.last_commit) || stored.length > 0;
+    const selected = new Set(stored);
+    if (!initialized) {
+        defaults.forEach((value) => selected.add(value));
+    }
+
+    const fragment = document.createDocumentFragment();
+    entries.forEach((entry) => {
+        const label = document.createElement("label");
+        label.className = "checkbox-field";
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.value = entry.name;
+        input.checked = selected.has(entry.name);
+        input.dataset.role = "protected-path";
+        label.appendChild(input);
+        const span = document.createElement("span");
+        const suffix = entry.kind === "directory" ? "/" : "";
+        span.textContent = `${entry.name}${suffix}`;
+        label.appendChild(span);
+        fragment.appendChild(label);
+    });
+    els.gitProtectedList.replaceChildren();
+    if (entries.length === 0) {
+        const note = document.createElement("p");
+        note.className = "surface-note";
+        note.id = "gitProtectedEmpty";
+        note.textContent = tr("git.protected_paths_empty");
+        els.gitProtectedList.appendChild(note);
+        els.gitProtectedEmpty = note;
+    } else {
+        els.gitProtectedList.appendChild(fragment);
+    }
+    void isImported;
+}
+
+function collectProtectedPaths() {
+    const inputs = els.gitProtectedList?.querySelectorAll('input[data-role="protected-path"]') || [];
+    const stored = Array.isArray(state.gitDeploy?.protected_paths) ? state.gitDeploy.protected_paths.map((value) => String(value)) : [];
+    if (!inputs.length) return stored;
+    return Array.from(inputs).filter((input) => input.checked).map((input) => input.value);
+}
+
+function updateProtectedSectionDisabled() {
+    const enabled = Boolean(els.gitKeepUserDataInput?.checked);
+    if (els.gitProtectedSection) {
+        els.gitProtectedSection.classList.toggle("is-disabled", !enabled);
+        els.gitProtectedSection.setAttribute("aria-disabled", enabled ? "false" : "true");
+    }
+    const inputs = els.gitProtectedList?.querySelectorAll('input[data-role="protected-path"]') || [];
+    inputs.forEach((input) => {
+        input.disabled = !enabled;
+    });
+    if (els.refreshProtectedBtn) els.refreshProtectedBtn.disabled = !enabled;
 }
 
 function renderGitStatus(status) {
@@ -813,6 +891,8 @@ async function saveGitDeploy({ silent = false } = {}) {
                 auto_update: Boolean(els.gitAutoUpdateInput?.checked),
                 install_requirements: Boolean(els.gitInstallDepsInput?.checked),
                 restart_after_update: Boolean(els.gitRestartInput?.checked),
+                keep_user_data: Boolean(els.gitKeepUserDataInput?.checked),
+                protected_paths: collectProtectedPaths(),
             }),
         });
         applyGitDeployToForm();
@@ -821,6 +901,15 @@ async function saveGitDeploy({ silent = false } = {}) {
     } catch (error) {
         showToast(error.message, "error");
         return false;
+    }
+}
+
+async function refreshGitDeploy({ silent = true } = {}) {
+    try {
+        state.gitDeploy = await api("/api/git-deploy");
+        applyGitDeployToForm();
+    } catch (error) {
+        if (!silent) showToast(error.message, "error");
     }
 }
 

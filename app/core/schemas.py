@@ -23,6 +23,8 @@ class GitDeploySettingsModel(BaseModel):
     auto_update: bool = False
     install_requirements: bool = True
     restart_after_update: bool = True
+    keep_user_data: bool = True
+    protected_paths: list[str] = Field(default_factory=list, max_length=200)
     last_commit: str = Field(default="", max_length=80)
     last_remote_commit: str = Field(default="", max_length=80)
     last_checked_at: str | None = None
@@ -37,6 +39,8 @@ class GitDeployUpdateRequest(BaseModel):
     auto_update: bool = False
     install_requirements: bool = True
     restart_after_update: bool = True
+    keep_user_data: bool = True
+    protected_paths: list[str] = Field(default_factory=list, max_length=200)
 
 
 class CreateServerRequest(BaseModel):
