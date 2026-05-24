@@ -10,6 +10,7 @@ from starlette.background import BackgroundTask
 
 from app.core.i18n import LOCALE_COOKIE, locale_cookie_value, translate, translations_for
 from app.core.schemas import (
+    BackupRetentionUpdateRequest,
     BotSettingsModel,
     ConsoleCommandRequest,
     CreateServerRequest,
@@ -21,6 +22,8 @@ from app.core.schemas import (
     DeleteEntriesRequest,
     DownloadSelectionRequest,
     ExtractArchiveRequest,
+    GitDeployProtectedAddRequest,
+    GitDeployRollbackRequest,
     GitDeployUpdateRequest,
     InstallPackageRequest,
     PanelMetaUpdateModel,
@@ -148,6 +151,7 @@ async def _page_context(request: Request, *, active_page: str) -> dict[str, Any]
     env_entries = state.env_service.list_entries()
     panel_meta = state.panel_meta_service.get()
     git_deploy = state.git_deploy_service.get()
+    backup_retention = state.backup_service.get_retention().model_dump(mode="json")
     registry = _registry(request)
     servers = []
     for server in registry.list_records():
@@ -163,6 +167,8 @@ async def _page_context(request: Request, *, active_page: str) -> dict[str, Any]
             }
         )
     server_address = request.headers.get("host") or f"localhost:{app_state.config.port}"
+    auth_enabled = bool(app_state.config.ui_username and app_state.config.ui_password)
+    auth_warning = _should_show_auth_warning(request, auth_enabled)
 
     return {
         "request": request,
@@ -178,8 +184,10 @@ async def _page_context(request: Request, *, active_page: str) -> dict[str, Any]
         "active_server_query": f"?server_id={state.record.server_id}",
         "env_entries": [entry.model_dump(mode="json") for entry in env_entries],
         "git_deploy": git_deploy,
+        "backup_retention": backup_retention,
         "workspace_path": str(state.config.workspace_dir),
-        "auth_enabled": bool(app_state.config.ui_username and app_state.config.ui_password),
+        "auth_enabled": auth_enabled,
+        "auth_warning": auth_warning,
         "server_address": server_address,
         "support_links": SUPPORT_LINKS,
         "locale": locale,
@@ -187,6 +195,17 @@ async def _page_context(request: Request, *, active_page: str) -> dict[str, Any]
         "runtime_version": f"Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         "timezone": app_state.config.timezone,
     }
+
+
+def _should_show_auth_warning(request: Request, auth_enabled: bool) -> bool:
+    if auth_enabled:
+        return False
+    host = (request.headers.get("host") or "").split(":")[0].lower()
+    if host in {"localhost", "127.0.0.1", "::1", ""}:
+        return False
+    if host.endswith(".localhost"):
+        return False
+    return True
 
 
 async def _render_page(request: Request, template_name: str, *, active_page: str) -> HTMLResponse:
@@ -401,6 +420,54 @@ async def update_git_deploy(request: Request) -> JSONResponse:
     except Exception as exc:  # noqa: BLE001
         _raise_bad_request(exc)
     return JSONResponse(result)
+
+
+@router.post("/api/git-deploy/preview")
+async def preview_git_deploy(request: Request) -> JSONResponse:
+    try:
+        result = await _services(request).git_deploy_service.preview_update()
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse(result)
+
+
+@router.post("/api/git-deploy/protected")
+async def add_protected_pattern(request: Request, payload: GitDeployProtectedAddRequest) -> JSONResponse:
+    try:
+        result = _services(request).git_deploy_service.add_protected_pattern(payload)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse(result)
+
+
+@router.delete("/api/git-deploy/protected")
+async def remove_protected_pattern(request: Request, pattern: str) -> JSONResponse:
+    try:
+        result = _services(request).git_deploy_service.remove_protected_pattern(pattern)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse(result)
+
+
+@router.post("/api/git-deploy/rollback")
+async def rollback_git_deploy(request: Request, payload: GitDeployRollbackRequest) -> JSONResponse:
+    try:
+        result = await _services(request).git_deploy_service.rollback(payload.backup_name)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse(result)
+
+
+@router.get("/api/backups/retention")
+async def get_backup_retention(request: Request) -> JSONResponse:
+    return JSONResponse(_services(request).backup_service.get_retention().model_dump(mode="json"))
+
+
+@router.put("/api/backups/retention")
+async def save_backup_retention(request: Request, payload: BackupRetentionUpdateRequest) -> JSONResponse:
+    settings = _services(request).backup_service.update_retention(payload)
+    await _services(request).log_service.write("system", "Backup-Retention aktualisiert.")
+    return JSONResponse(settings.model_dump(mode="json"))
 
 
 @router.get("/api/app-update")

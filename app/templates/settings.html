@@ -94,6 +94,11 @@
             </div>
         </dl>
         <p class="surface-note">{{ ui["app_update.help"] }}</p>
+        <details class="release-notes-wrap hidden" id="appUpdateReleaseWrap">
+            <summary>{{ ui["app_update.release_notes"] }}</summary>
+            <pre class="release-notes" id="appUpdateReleaseNotes"></pre>
+            <a class="btn btn-secondary" id="appUpdateReleaseLink" href="#" target="_blank" rel="noreferrer">{{ ui["app_update.release_open"] }}</a>
+        </details>
         <div class="card-actions card-actions-end">
             <button class="btn btn-secondary" id="checkAppUpdateBtn" type="button">{{ ui["app_update.check"] }}</button>
         </div>
@@ -137,6 +142,15 @@
                 <button class="btn btn-secondary" id="refreshProtectedBtn" type="button">{{ ui["git.protected_refresh"] }}</button>
             </div>
         </fieldset>
+        <fieldset class="kb-fieldset" id="gitExtraPatternSection">
+            <legend>{{ ui["git.protected_extra"] }}</legend>
+            <p class="surface-note">{{ ui["git.protected_extra_help"] }}</p>
+            <div class="extra-pattern-row">
+                <input id="gitExtraPatternInput" type="text" placeholder="{{ ui['git.protected_extra_placeholder'] }}">
+                <button class="btn btn-primary" id="addExtraPatternBtn" type="button">{{ ui["git.protected_add"] }}</button>
+            </div>
+            <ul class="extra-pattern-list" id="gitExtraPatternList"></ul>
+        </fieldset>
         <dl class="info-table compact-table">
             <div>
                 <dt>{{ ui["git.status"] }}</dt>
@@ -157,9 +171,30 @@
         </dl>
         <div class="card-actions card-actions-end">
             <button class="btn btn-secondary" id="checkGitBtn" type="button">{{ ui["git.check"] }}</button>
+            <button class="btn btn-secondary" id="previewGitBtn" type="button">{{ ui["git.preview"] }}</button>
             <button class="btn btn-secondary" id="importGitBtn" type="button">{{ ui["git.import"] }}</button>
             <button class="btn btn-primary" id="updateGitBtn" type="button">{{ ui["git.update"] }}</button>
         </div>
+        <section class="git-preview hidden" id="gitPreviewBox">
+            <h3 class="card-title">{{ ui["git.preview"] }}</h3>
+            <p class="surface-note" id="gitPreviewMessage">{{ ui["git.preview_loading"] }}</p>
+            <div class="git-preview-grid" id="gitPreviewGrid"></div>
+        </section>
+        <section class="git-history">
+            <h3 class="card-title">{{ ui["git.history"] }}</h3>
+            <table class="data-table compact-table">
+                <thead>
+                    <tr>
+                        <th>{{ ui["git.history_when"] }}</th>
+                        <th>{{ ui["git.history_action"] }}</th>
+                        <th>{{ ui["git.history_change"] }}</th>
+                        <th>{{ ui["git.local_commit"] }}</th>
+                        <th>{{ ui["backups.actions"] }}</th>
+                    </tr>
+                </thead>
+                <tbody id="gitHistoryBody"></tbody>
+            </table>
+        </section>
     </article>
 
     <article class="kb-card settings-reinstall">

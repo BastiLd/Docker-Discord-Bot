@@ -9,6 +9,34 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 ENV_KEY_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
+BackupRetentionMode = Literal["disabled", "30d", "6m", "10m", "1y", "custom"]
+
+
+class BackupRetentionSettingsModel(BaseModel):
+    enabled: bool = True
+    mode: BackupRetentionMode = "30d"
+    custom_days: int = Field(default=30, ge=1, le=3650)
+
+
+class BackupRetentionUpdateRequest(BaseModel):
+    enabled: bool = True
+    mode: BackupRetentionMode = "30d"
+    custom_days: int = Field(default=30, ge=1, le=3650)
+
+
+class GitDeployHistoryEntry(BaseModel):
+    timestamp: str
+    action: Literal["import", "update", "rollback"]
+    from_commit: str = ""
+    to_commit: str = ""
+    backup_name: str = ""
+    added: int = 0
+    modified: int = 0
+    removed: int = 0
+    kept: int = 0
+    message: str = ""
+
+
 class BotSettingsModel(BaseModel):
     start_command: str = Field(default="python bot.py", min_length=1, max_length=300)
     auto_restart: bool = True
@@ -25,12 +53,14 @@ class GitDeploySettingsModel(BaseModel):
     restart_after_update: bool = True
     keep_user_data: bool = True
     protected_paths: list[str] = Field(default_factory=list, max_length=200)
+    extra_protected_paths: list[str] = Field(default_factory=list, max_length=200)
     last_commit: str = Field(default="", max_length=80)
     last_remote_commit: str = Field(default="", max_length=80)
     last_checked_at: str | None = None
     last_updated_at: str | None = None
     status: str = Field(default="not_configured", max_length=60)
     message: str = Field(default="", max_length=1000)
+    history: list[GitDeployHistoryEntry] = Field(default_factory=list, max_length=50)
 
 
 class GitDeployUpdateRequest(BaseModel):
@@ -41,6 +71,15 @@ class GitDeployUpdateRequest(BaseModel):
     restart_after_update: bool = True
     keep_user_data: bool = True
     protected_paths: list[str] = Field(default_factory=list, max_length=200)
+    extra_protected_paths: list[str] = Field(default_factory=list, max_length=200)
+
+
+class GitDeployProtectedAddRequest(BaseModel):
+    pattern: str = Field(min_length=1, max_length=200)
+
+
+class GitDeployRollbackRequest(BaseModel):
+    backup_name: str = Field(min_length=1, max_length=200)
 
 
 class CreateServerRequest(BaseModel):

@@ -18,6 +18,7 @@ class AppUpdateService:
     registry_tags_url: str = "https://ghcr.io/v2/bastild/docker-discord-bot/tags/list"
     registry_token_url: str = "https://ghcr.io/token?scope=repository:bastild/docker-discord-bot:pull"
     image_name: str = "ghcr.io/bastild/docker-discord-bot"
+    releases_url: str = "https://api.github.com/repos/BastiLd/Docker-Discord-Bot/releases/latest"
 
     def snapshot(self) -> dict:
         current_tag = self.config.app_image_tag
@@ -27,22 +28,48 @@ class AppUpdateService:
             "current_tag": current_tag,
             "build_sha": self.config.app_build_sha,
             "latest_tag": "",
+            "latest_release_name": "",
+            "latest_release_url": "",
+            "latest_release_notes": "",
+            "latest_release_published_at": "",
             "update_available": False,
             "message": "Für bewegliche Tags wie main oder latest: Image in ZimaOS neu ziehen und App neu erstellen/starten.",
         }
-        latest = self._latest_image_tag()
-        if latest:
-            payload["latest_tag"] = latest
+
+        release = self._latest_release()
+        if release:
+            payload["latest_release_name"] = release.get("name") or release.get("tag_name") or ""
+            payload["latest_release_url"] = release.get("html_url") or ""
+            payload["latest_release_notes"] = release.get("body") or ""
+            payload["latest_release_published_at"] = release.get("published_at") or ""
+
+        latest_tag = ""
+        if release and isinstance(release.get("tag_name"), str):
+            tag = release["tag_name"]
+            if SEMVER_PATTERN.match(tag):
+                latest_tag = self._normalize_tag(tag)
+
+        if not latest_tag:
+            latest_tag = self._latest_image_tag()
+
+        if latest_tag:
+            payload["latest_tag"] = latest_tag
             compare_tag = self.config.app_version if current_tag in {"main", "latest"} else current_tag
-            payload["update_available"] = self._is_newer(latest, compare_tag)
+            payload["update_available"] = self._is_newer(latest_tag, compare_tag)
             payload["message"] = (
-                f"Neue Version {latest} verfügbar. In ZimaOS Tag auf {latest} setzen und Image neu ziehen."
+                f"Neue Version {latest_tag} verfügbar. In ZimaOS Tag auf {latest_tag} setzen und Image neu ziehen."
                 if payload["update_available"]
                 else "Installierte Version ist aktuell."
             )
         else:
             payload["message"] = "Update-Check konnte keine GHCR-Versionstags lesen. Bitte Netzwerk und Paket-Sichtbarkeit prüfen."
         return payload
+
+    def _latest_release(self) -> dict | None:
+        try:
+            return self._fetch_json(self.releases_url)
+        except Exception:  # noqa: BLE001
+            return None
 
     def _latest_image_tag(self) -> str:
         try:

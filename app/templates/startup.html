@@ -98,6 +98,38 @@
             <button class="btn btn-secondary" id="refreshProtectedBtn" type="button">{{ ui["git.protected_refresh"] }}</button>
         </div>
     </fieldset>
+    <fieldset class="kb-fieldset section-stack" id="gitExtraPatternSection">
+        <legend>{{ ui["git.protected_extra"] }}</legend>
+        <p class="surface-note">{{ ui["git.protected_extra_help"] }}</p>
+        <div class="extra-pattern-row">
+            <input id="gitExtraPatternInput" type="text" placeholder="{{ ui['git.protected_extra_placeholder'] }}">
+            <button class="btn btn-primary" id="addExtraPatternBtn" type="button">{{ ui["git.protected_add"] }}</button>
+        </div>
+        <ul class="extra-pattern-list" id="gitExtraPatternList"></ul>
+    </fieldset>
+    <div class="card-actions card-actions-end section-stack">
+        <button class="btn btn-secondary" id="previewGitBtn" type="button">{{ ui["git.preview"] }}</button>
+    </div>
+    <section class="git-preview hidden section-stack" id="gitPreviewBox">
+        <h3 class="card-title">{{ ui["git.preview"] }}</h3>
+        <p class="surface-note" id="gitPreviewMessage">{{ ui["git.preview_loading"] }}</p>
+        <div class="git-preview-grid" id="gitPreviewGrid"></div>
+    </section>
+    <section class="git-history section-stack">
+        <h3 class="card-title">{{ ui["git.history"] }}</h3>
+        <table class="data-table compact-table">
+            <thead>
+                <tr>
+                    <th>{{ ui["git.history_when"] }}</th>
+                    <th>{{ ui["git.history_action"] }}</th>
+                    <th>{{ ui["git.history_change"] }}</th>
+                    <th>{{ ui["git.local_commit"] }}</th>
+                    <th>{{ ui["backups.actions"] }}</th>
+                </tr>
+            </thead>
+            <tbody id="gitHistoryBody"></tbody>
+        </table>
+    </section>
     <dl class="info-table compact-table section-stack">
         <div>
             <dt>{{ ui["git.status"] }}</dt>

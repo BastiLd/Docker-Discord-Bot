@@ -95,10 +95,23 @@
             <header class="topbar">
                 <button class="quick-focus" id="quickFocusBtn" type="button" aria-label="{{ ui['layout.search'] }}"><span class="quick-focus-icon" aria-hidden="true"></span></button>
                 <div class="topbar-links">
+                    <span class="topbar-update-indicator hidden" id="topbarUpdateIndicator" role="status">
+                        <a href="/settings{{ active_server_query }}#appUpdateMessage" id="topbarUpdateLink">{{ ui["app_update.available"] }}</a>
+                    </span>
                     <a class="topbar-link" href="{{ support_links.discord }}" target="_blank" rel="noreferrer">{{ ui["layout.discord"] }}</a>
                     <a class="topbar-link is-support" href="{{ support_links.support }}" target="_blank" rel="noreferrer">{{ ui["layout.support"] }}</a>
                 </div>
             </header>
+
+            {% if auth_warning %}
+            <div class="auth-warning-banner" id="authWarningBanner" role="alert">
+                <div class="auth-warning-copy">
+                    <strong>{{ ui["auth.warning_title"] }}</strong>
+                    <span>{{ ui["auth.warning_body"] }}</span>
+                </div>
+                <button type="button" class="btn btn-secondary" id="dismissAuthWarningBtn">{{ ui["auth.warning_dismiss"] }}</button>
+            </div>
+            {% endif %}
 
             <main class="page-shell">
                 {% block page_body %}{% endblock %}
@@ -199,9 +212,11 @@
             "panelMeta": {{ panel_meta | tojson | safe }},
             "envEntries": {{ env_entries | tojson | safe }},
             "gitDeploy": {{ git_deploy | tojson | safe }},
+            "backupRetention": {{ backup_retention | tojson | safe }},
             "servers": {{ servers | tojson | safe }},
             "activeServerId": {{ active_server_id | tojson | safe }},
             "authEnabled": {{ auth_enabled | tojson | safe }},
+            "authWarning": {{ auth_warning | tojson | safe }},
             "page": {{ active_page | tojson | safe }},
             "workspacePath": {{ workspace_path | tojson | safe }},
             "serverAddress": {{ server_address | tojson | safe }},

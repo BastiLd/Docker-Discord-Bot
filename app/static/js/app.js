@@ -8,7 +8,9 @@ const state = {
     settings: initial.settings || {},
     panelMeta: initial.panelMeta || {},
     gitDeploy: initial.gitDeploy || {},
+    backupRetention: initial.backupRetention || { enabled: true, mode: "30d", custom_days: 30 },
     appUpdate: {},
+    gitPreview: null,
     servers: initial.servers || [],
     activeServerId: initial.activeServerId || "default",
     envEntries: initial.envEntries || [],
@@ -85,13 +87,38 @@ document.addEventListener("DOMContentLoaded", () => {
     bindAccountMenu();
     bindTour();
     bindGlobalBotControls();
+    bindAuthWarningDismiss();
     initializePage();
     bindQuickFocus();
     refreshStatus({ silent: true });
     refreshMetrics({ silent: true });
+    refreshAppUpdate({ silent: true });
     window.setInterval(() => refreshStatus({ silent: true }), 5000);
     window.setInterval(() => refreshMetrics({ silent: true }), 10000);
+    window.setInterval(() => refreshAppUpdate({ silent: true }), 60 * 60 * 1000);
 });
+
+function bindAuthWarningDismiss() {
+    const button = byId("dismissAuthWarningBtn");
+    const banner = byId("authWarningBanner");
+    if (!button || !banner) return;
+    button.addEventListener("click", () => {
+        banner.classList.add("hidden");
+        try {
+            window.localStorage?.setItem("katabot.authWarning.dismissed", String(Date.now()));
+        } catch {
+            // ignore storage failures
+        }
+    });
+    try {
+        const stamp = Number(window.localStorage?.getItem("katabot.authWarning.dismissed") || 0);
+        if (stamp && Date.now() - stamp < 1000 * 60 * 60 * 24) {
+            banner.classList.add("hidden");
+        }
+    } catch {
+        // ignore storage failures
+    }
+}
 
 function bindAccountMenu() {
     els.accountMoreBtn?.addEventListener("click", (event) => {
@@ -513,6 +540,9 @@ function bindSettingsPage() {
         appUpdateCurrentTag: byId("appUpdateCurrentTag"),
         appUpdateLatestTag: byId("appUpdateLatestTag"),
         appUpdateMessage: byId("appUpdateMessage"),
+        appUpdateReleaseWrap: byId("appUpdateReleaseWrap"),
+        appUpdateReleaseNotes: byId("appUpdateReleaseNotes"),
+        appUpdateReleaseLink: byId("appUpdateReleaseLink"),
         gitRepoInput: byId("gitRepoInput"),
         gitBranchInput: byId("gitBranchInput"),
         gitAutoUpdateInput: byId("gitAutoUpdateInput"),
@@ -523,6 +553,10 @@ function bindSettingsPage() {
         gitProtectedList: byId("gitProtectedList"),
         gitProtectedEmpty: byId("gitProtectedEmpty"),
         refreshProtectedBtn: byId("refreshProtectedBtn"),
+        gitExtraPatternSection: byId("gitExtraPatternSection"),
+        gitExtraPatternInput: byId("gitExtraPatternInput"),
+        addExtraPatternBtn: byId("addExtraPatternBtn"),
+        gitExtraPatternList: byId("gitExtraPatternList"),
         gitStatusText: byId("gitStatusText"),
         gitLocalCommitText: byId("gitLocalCommitText"),
         gitRemoteCommitText: byId("gitRemoteCommitText"),
@@ -530,6 +564,11 @@ function bindSettingsPage() {
         checkGitBtn: byId("checkGitBtn"),
         importGitBtn: byId("importGitBtn"),
         updateGitBtn: byId("updateGitBtn"),
+        previewGitBtn: byId("previewGitBtn"),
+        gitPreviewBox: byId("gitPreviewBox"),
+        gitPreviewMessage: byId("gitPreviewMessage"),
+        gitPreviewGrid: byId("gitPreviewGrid"),
+        gitHistoryBody: byId("gitHistoryBody"),
     });
 
     els.savePanelBtn?.addEventListener("click", savePanelMeta);
@@ -569,7 +608,6 @@ async function savePanelMeta() {
 }
 
 async function refreshAppUpdate({ silent = false } = {}) {
-    if (!els.appUpdateMessage) return;
     try {
         const payload = await api("/api/app-update");
         state.appUpdate = payload;
@@ -577,9 +615,34 @@ async function refreshAppUpdate({ silent = false } = {}) {
         if (els.appUpdateCurrentTag) els.appUpdateCurrentTag.textContent = payload.current_tag || "-";
         if (els.appUpdateLatestTag) els.appUpdateLatestTag.textContent = payload.latest_tag || (payload.current_tag || "-");
         if (els.appUpdateMessage) els.appUpdateMessage.textContent = payload.message || tr("common.none");
+        if (els.appUpdateReleaseWrap && els.appUpdateReleaseNotes && els.appUpdateReleaseLink) {
+            const hasNotes = Boolean(payload.latest_release_notes || payload.latest_release_url);
+            els.appUpdateReleaseWrap.classList.toggle("hidden", !hasNotes);
+            els.appUpdateReleaseNotes.textContent = payload.latest_release_notes || "";
+            if (payload.latest_release_url) {
+                els.appUpdateReleaseLink.href = payload.latest_release_url;
+                els.appUpdateReleaseLink.classList.remove("hidden");
+            } else {
+                els.appUpdateReleaseLink.classList.add("hidden");
+            }
+        }
+        applyTopbarUpdateIndicator(payload);
         if (!silent) showToast(payload.update_available ? tr("app_update.available") : tr("app_update.current"));
     } catch (error) {
         if (!silent) showToast(error.message, "error");
+    }
+}
+
+function applyTopbarUpdateIndicator(payload) {
+    const banner = byId("topbarUpdateIndicator");
+    const link = byId("topbarUpdateLink");
+    if (!banner || !link) return;
+    if (payload && payload.update_available) {
+        link.textContent = tr("app_update.banner", { version: payload.latest_tag || "" });
+        if (payload.latest_release_url) link.href = payload.latest_release_url;
+        banner.classList.remove("hidden");
+    } else {
+        banner.classList.add("hidden");
     }
 }
 
@@ -630,6 +693,11 @@ function bindBackupsPage() {
     Object.assign(els, {
         createBackupBtn: byId("createBackupBtn"),
         backupTableBody: byId("backupTableBody"),
+        retentionEnabledInput: byId("retentionEnabledInput"),
+        retentionModeInput: byId("retentionModeInput"),
+        retentionCustomInput: byId("retentionCustomInput"),
+        retentionCustomField: byId("retentionCustomField"),
+        saveRetentionBtn: byId("saveRetentionBtn"),
     });
 
     els.createBackupBtn?.addEventListener("click", async () => {
@@ -661,7 +729,44 @@ function bindBackupsPage() {
         }
     });
 
+    applyRetentionToForm();
+    els.retentionModeInput?.addEventListener("change", updateRetentionCustomVisibility);
+    els.saveRetentionBtn?.addEventListener("click", saveBackupRetention);
+
     refreshBackups();
+}
+
+function applyRetentionToForm() {
+    const payload = state.backupRetention || { enabled: true, mode: "30d", custom_days: 30 };
+    if (els.retentionEnabledInput) els.retentionEnabledInput.checked = payload.enabled !== false;
+    if (els.retentionModeInput) els.retentionModeInput.value = payload.mode || "30d";
+    if (els.retentionCustomInput) els.retentionCustomInput.value = String(payload.custom_days || 30);
+    updateRetentionCustomVisibility();
+}
+
+function updateRetentionCustomVisibility() {
+    if (!els.retentionCustomField) return;
+    const isCustom = (els.retentionModeInput?.value || "30d") === "custom";
+    els.retentionCustomField.classList.toggle("hidden", !isCustom);
+}
+
+async function saveBackupRetention() {
+    try {
+        const payload = await api("/api/backups/retention", {
+            method: "PUT",
+            body: JSON.stringify({
+                enabled: Boolean(els.retentionEnabledInput?.checked),
+                mode: els.retentionModeInput?.value || "30d",
+                custom_days: Number(els.retentionCustomInput?.value || 30),
+            }),
+        });
+        state.backupRetention = payload;
+        applyRetentionToForm();
+        showToastKey("backups.retention_saved");
+        await refreshBackups();
+    } catch (error) {
+        showToast(error.message, "error");
+    }
 }
 
 async function refreshBackups() {
@@ -735,6 +840,10 @@ function bindStartupPage() {
         gitProtectedList: byId("gitProtectedList"),
         gitProtectedEmpty: byId("gitProtectedEmpty"),
         refreshProtectedBtn: byId("refreshProtectedBtn"),
+        gitExtraPatternSection: byId("gitExtraPatternSection"),
+        gitExtraPatternInput: byId("gitExtraPatternInput"),
+        addExtraPatternBtn: byId("addExtraPatternBtn"),
+        gitExtraPatternList: byId("gitExtraPatternList"),
         gitStatusText: byId("gitStatusText"),
         gitLocalCommitText: byId("gitLocalCommitText"),
         gitRemoteCommitText: byId("gitRemoteCommitText"),
@@ -742,6 +851,11 @@ function bindStartupPage() {
         checkGitBtn: byId("checkGitBtn"),
         importGitBtn: byId("importGitBtn"),
         updateGitBtn: byId("updateGitBtn"),
+        previewGitBtn: byId("previewGitBtn"),
+        gitPreviewBox: byId("gitPreviewBox"),
+        gitPreviewMessage: byId("gitPreviewMessage"),
+        gitPreviewGrid: byId("gitPreviewGrid"),
+        gitHistoryBody: byId("gitHistoryBody"),
     });
 
     applySettingsToForm();
@@ -783,6 +897,89 @@ function bindGitDeployButtons() {
     });
     els.refreshProtectedBtn?.addEventListener("click", () => refreshGitDeploy({ silent: false }));
     els.gitKeepUserDataInput?.addEventListener("change", () => updateProtectedSectionDisabled());
+    els.previewGitBtn?.addEventListener("click", previewGitUpdate);
+    els.addExtraPatternBtn?.addEventListener("click", addExtraPattern);
+    els.gitExtraPatternInput?.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            addExtraPattern();
+        }
+    });
+    els.gitHistoryBody?.addEventListener("click", handleHistoryClick);
+}
+
+async function addExtraPattern() {
+    const value = (els.gitExtraPatternInput?.value || "").trim();
+    if (!value) return;
+    try {
+        state.gitDeploy = await api("/api/git-deploy/protected", {
+            method: "POST",
+            body: JSON.stringify({ pattern: value }),
+        });
+        if (els.gitExtraPatternInput) els.gitExtraPatternInput.value = "";
+        applyGitDeployToForm();
+        showToastKey("toast.git_pattern_added");
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+async function removeExtraPattern(pattern) {
+    if (!pattern) return;
+    try {
+        state.gitDeploy = await api(`/api/git-deploy/protected?pattern=${encodeURIComponent(pattern)}`, {
+            method: "DELETE",
+        });
+        applyGitDeployToForm();
+        showToastKey("toast.git_pattern_removed");
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+async function previewGitUpdate() {
+    if (!els.gitPreviewBox) return;
+    if (!(await saveGitDeploy({ silent: true }))) return;
+    els.gitPreviewBox.classList.remove("hidden");
+    if (els.gitPreviewMessage) els.gitPreviewMessage.textContent = tr("git.preview_loading");
+    if (els.gitPreviewGrid) els.gitPreviewGrid.innerHTML = "";
+    try {
+        const payload = await api("/api/git-deploy/preview", { method: "POST" });
+        state.gitPreview = payload;
+        renderGitPreview(payload);
+    } catch (error) {
+        if (els.gitPreviewMessage) els.gitPreviewMessage.textContent = error.message || tr("git.preview_loading");
+    }
+}
+
+function renderGitPreview(payload) {
+    if (!els.gitPreviewGrid || !els.gitPreviewMessage) return;
+    const totals = payload.totals || { added: 0, modified: 0, removed: 0, kept: 0 };
+    const noChanges = totals.added + totals.modified + totals.removed === 0;
+    els.gitPreviewMessage.textContent = noChanges
+        ? tr("git.preview_clean")
+        : `${tr("git.local_commit")}: ${shortCommit(payload.local_commit)} → ${shortCommit(payload.remote_commit)}`;
+    const buckets = [
+        { key: "added", label: tr("git.preview_added", { count: totals.added }), entries: payload.added || [] },
+        { key: "modified", label: tr("git.preview_modified", { count: totals.modified }), entries: payload.modified || [] },
+        { key: "removed", label: tr("git.preview_removed", { count: totals.removed }), entries: payload.removed || [] },
+        { key: "kept", label: tr("git.preview_kept", { count: totals.kept }), entries: payload.kept || [] },
+    ];
+    els.gitPreviewGrid.innerHTML = buckets
+        .map((bucket) => {
+            const items = bucket.entries
+                .slice(0, 200)
+                .map((entry) => {
+                    const path = entry.path || "";
+                    const protectedTag = entry.protected
+                        ? `<span class="tag is-protected">${escapeHtml(tr("git.protect_file"))}</span>`
+                        : "";
+                    return `<li><code>${escapeHtml(path)}</code>${protectedTag}</li>`;
+                })
+                .join("");
+            return `<div class="git-preview-bucket git-preview-${bucket.key}"><h4>${escapeHtml(bucket.label)}</h4><ul>${items || "<li class=\"surface-note\">—</li>"}</ul></div>`;
+        })
+        .join("");
 }
 
 function applyGitDeployToForm() {
@@ -798,7 +995,71 @@ function applyGitDeployToForm() {
     if (els.gitRemoteCommitText) els.gitRemoteCommitText.textContent = shortCommit(payload.last_remote_commit);
     if (els.gitMessageText) els.gitMessageText.textContent = payload.message || tr("common.none");
     renderProtectedPaths();
+    renderExtraPatterns();
+    renderGitHistory();
     updateProtectedSectionDisabled();
+}
+
+function renderExtraPatterns() {
+    if (!els.gitExtraPatternList) return;
+    const extras = Array.isArray(state.gitDeploy?.extra_protected_paths) ? state.gitDeploy.extra_protected_paths : [];
+    if (!extras.length) {
+        els.gitExtraPatternList.innerHTML = `<li class="surface-note">${escapeHtml(tr("git.protected_extra_empty"))}</li>`;
+        return;
+    }
+    els.gitExtraPatternList.innerHTML = extras
+        .map((pattern) => {
+            const safe = escapeHtml(pattern);
+            return `<li><code>${safe}</code><button type="button" class="btn btn-secondary btn-sm" data-action="remove-pattern" data-pattern="${safe}">${escapeHtml(tr("git.protected_remove"))}</button></li>`;
+        })
+        .join("");
+    els.gitExtraPatternList.querySelectorAll('[data-action="remove-pattern"]').forEach((button) => {
+        button.addEventListener("click", () => removeExtraPattern(button.dataset.pattern));
+    });
+}
+
+function renderGitHistory() {
+    if (!els.gitHistoryBody) return;
+    const history = Array.isArray(state.gitDeploy?.history) ? state.gitDeploy.history : [];
+    if (!history.length) {
+        els.gitHistoryBody.innerHTML = `<tr><td colspan="5"><div class="empty-state">${escapeHtml(tr("git.history_empty"))}</div></td></tr>`;
+        return;
+    }
+    els.gitHistoryBody.innerHTML = history
+        .map((entry) => {
+            const ts = entry.timestamp ? new Date(entry.timestamp).toLocaleString(state.locale === "de" ? "de-AT" : "en-GB") : "-";
+            const action = tr(`git.action_${entry.action}`) || entry.action;
+            const summary = tr("git.history_summary", {
+                added: entry.added || 0,
+                modified: entry.modified || 0,
+                removed: entry.removed || 0,
+                kept: entry.kept || 0,
+            });
+            const commit = `${shortCommit(entry.from_commit)} → ${shortCommit(entry.to_commit)}`;
+            const rollbackBtn = entry.backup_name
+                ? `<button class="file-action-link" type="button" data-action="rollback" data-backup="${escapeHtml(entry.backup_name)}">${escapeHtml(tr("git.history_rollback"))}</button>`
+                : "";
+            return `<tr><td>${escapeHtml(ts)}</td><td>${escapeHtml(action)}</td><td>${escapeHtml(summary)}</td><td><code>${escapeHtml(commit)}</code></td><td>${rollbackBtn}</td></tr>`;
+        })
+        .join("");
+}
+
+async function handleHistoryClick(event) {
+    const button = event.target.closest('button[data-action="rollback"]');
+    if (!button) return;
+    const backup = button.dataset.backup;
+    if (!backup) return;
+    if (!window.confirm(tr("git.history_rollback_confirm", { backup }))) return;
+    try {
+        state.gitDeploy = await api("/api/git-deploy/rollback", {
+            method: "POST",
+            body: JSON.stringify({ backup_name: backup }),
+        });
+        applyGitDeployToForm();
+        showToastKey("toast.git_rolled_back");
+    } catch (error) {
+        showToast(error.message, "error");
+    }
 }
 
 function renderProtectedPaths() {
@@ -807,7 +1068,6 @@ function renderProtectedPaths() {
     const entries = Array.isArray(payload.workspace_entries) ? payload.workspace_entries : [];
     const defaults = new Set((payload.default_protected_paths || []).map((value) => String(value)));
     const stored = Array.isArray(payload.protected_paths) ? payload.protected_paths.map((value) => String(value)) : [];
-    const isImported = entries.length > 0;
     const initialized = Boolean(payload.last_commit) || stored.length > 0;
     const selected = new Set(stored);
     if (!initialized) {
@@ -841,7 +1101,6 @@ function renderProtectedPaths() {
     } else {
         els.gitProtectedList.appendChild(fragment);
     }
-    void isImported;
 }
 
 function collectProtectedPaths() {
@@ -853,15 +1112,18 @@ function collectProtectedPaths() {
 
 function updateProtectedSectionDisabled() {
     const enabled = Boolean(els.gitKeepUserDataInput?.checked);
-    if (els.gitProtectedSection) {
-        els.gitProtectedSection.classList.toggle("is-disabled", !enabled);
-        els.gitProtectedSection.setAttribute("aria-disabled", enabled ? "false" : "true");
-    }
+    [els.gitProtectedSection, els.gitExtraPatternSection].forEach((section) => {
+        if (!section) return;
+        section.classList.toggle("is-disabled", !enabled);
+        section.setAttribute("aria-disabled", enabled ? "false" : "true");
+    });
     const inputs = els.gitProtectedList?.querySelectorAll('input[data-role="protected-path"]') || [];
     inputs.forEach((input) => {
         input.disabled = !enabled;
     });
     if (els.refreshProtectedBtn) els.refreshProtectedBtn.disabled = !enabled;
+    if (els.addExtraPatternBtn) els.addExtraPatternBtn.disabled = !enabled;
+    if (els.gitExtraPatternInput) els.gitExtraPatternInput.disabled = !enabled;
 }
 
 function renderGitStatus(status) {
@@ -893,6 +1155,9 @@ async function saveGitDeploy({ silent = false } = {}) {
                 restart_after_update: Boolean(els.gitRestartInput?.checked),
                 keep_user_data: Boolean(els.gitKeepUserDataInput?.checked),
                 protected_paths: collectProtectedPaths(),
+                extra_protected_paths: Array.isArray(state.gitDeploy?.extra_protected_paths)
+                    ? state.gitDeploy.extra_protected_paths
+                    : [],
             }),
         });
         applyGitDeployToForm();
@@ -1698,6 +1963,7 @@ function bindFilesPage() {
     });
 
     clearEditor();
+    refreshGitDeploy({ silent: true });
     refreshFiles("").then(() => syncFileModeFromUrl({ replaceHistory: true }));
 
     els.refreshFilesBtn?.addEventListener("click", () => refreshFiles(state.currentPath));
@@ -1775,22 +2041,28 @@ function renderFileRow(entry) {
     const primaryAction = entry.kind === "directory" ? "open" : entry.editable ? "edit" : "download";
     const primaryLabel = entry.kind === "directory" ? tr("files.open") : entry.editable ? tr("files.edit") : tr("files.download");
     const fileIcon = iconForEntry(entry);
+    const isProtected = isPathProtected(entry.path);
+    const protectAction = isProtected ? "unprotect" : "protect";
+    const protectLabel = isProtected ? tr("git.unprotect_file") : tr("git.protect_file");
+    const protectButton = `<button class="file-action-link${isProtected ? " is-protected" : ""}" type="button" data-action="${protectAction}" data-path="${escapeHtml(entry.path)}">${escapeHtml(protectLabel)}</button>`;
 
     const actionButtons = [
         `<button class="file-action-link" type="button" data-action="${primaryAction}" data-path="${escapeHtml(entry.path)}">${escapeHtml(primaryLabel)}</button>`,
         `<button class="file-action-link" type="button" data-action="rename" data-path="${escapeHtml(entry.path)}">${escapeHtml(tr("files.rename"))}</button>`,
         `<button class="file-action-link" type="button" data-action="download" data-path="${escapeHtml(entry.path)}">${escapeHtml(tr("files.download"))}</button>`,
+        protectButton,
         entry.extractable ? `<button class="file-action-link" type="button" data-action="extract" data-path="${escapeHtml(entry.path)}">${escapeHtml(tr("files.extract"))}</button>` : "",
         `<button class="file-action-link" type="button" data-action="delete" data-path="${escapeHtml(entry.path)}">${escapeHtml(tr("common.delete"))}</button>`,
     ].join("");
 
     return `
-        <tr>
+        <tr${isProtected ? ' class="row-protected"' : ""}>
             <td><input type="checkbox" data-path="${escapeHtml(entry.path)}" ${checked}></td>
             <td>
                 <div class="file-name-cell">
                     <span class="file-icon file-icon-emoji" title="${escapeHtml(fileIcon.label)}" aria-hidden="true">${fileIcon.symbol}</span>
                     <button class="file-link" type="button" data-action="${primaryAction}" data-path="${escapeHtml(entry.path)}">${escapeHtml(entry.name)}</button>
+                    ${isProtected ? '<span class="tag is-protected" aria-hidden="true">🔒</span>' : ""}
                 </div>
             </td>
             <td>${escapeHtml(kindLabel)}</td>
@@ -1799,6 +2071,48 @@ function renderFileRow(entry) {
             <td><div class="file-actions">${actionButtons}</div></td>
         </tr>
     `;
+}
+
+function isPathProtected(relativePath) {
+    if (!relativePath) return false;
+    const dir = relativePath.includes("/") ? relativePath.split("/", 1)[0] : relativePath;
+    const protectedSet = new Set([
+        ...(state.gitDeploy?.protected_paths || []),
+        ...(state.gitDeploy?.extra_protected_paths || []),
+    ]);
+    if (protectedSet.has(relativePath)) return true;
+    if (protectedSet.has(dir)) return true;
+    for (const pattern of protectedSet) {
+        if (typeof pattern !== "string") continue;
+        if (pattern.includes("*") || pattern.includes("?")) {
+            if (matchGlob(pattern, relativePath)) return true;
+        }
+    }
+    return false;
+}
+
+function matchGlob(pattern, value) {
+    const escapeRegex = (s) => s.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+    let regex = "";
+    let index = 0;
+    while (index < pattern.length) {
+        const ch = pattern[index];
+        if (ch === "*") {
+            if (pattern.slice(index, index + 2) === "**") {
+                regex += ".*";
+                index += 2;
+                if (pattern[index] === "/") index += 1;
+                continue;
+            }
+            regex += "[^/]*";
+        } else if (ch === "?") {
+            regex += "[^/]";
+        } else {
+            regex += escapeRegex(ch);
+        }
+        index += 1;
+    }
+    return new RegExp("^" + regex + "$").test(value);
 }
 
 function fileTypeLabel(entry) {
@@ -1894,6 +2208,29 @@ function handleFileTableClick(event) {
     if (action === "delete") deleteEntries([path]);
     if (action === "download") downloadEntry(path);
     if (action === "extract") extractArchive(path);
+    if (action === "protect") toggleProtectFile(path, true);
+    if (action === "unprotect") toggleProtectFile(path, false);
+}
+
+async function toggleProtectFile(relativePath, protect) {
+    if (!relativePath) return;
+    try {
+        if (protect) {
+            state.gitDeploy = await api("/api/git-deploy/protected", {
+                method: "POST",
+                body: JSON.stringify({ pattern: relativePath }),
+            });
+            showToastKey("toast.git_protect_added");
+        } else {
+            state.gitDeploy = await api(`/api/git-deploy/protected?pattern=${encodeURIComponent(relativePath)}`, {
+                method: "DELETE",
+            });
+            showToastKey("toast.git_protect_removed");
+        }
+        renderFileTable();
+    } catch (error) {
+        showToast(error.message, "error");
+    }
 }
 
 function handleFileSelectionChange(event) {
