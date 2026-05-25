@@ -173,6 +173,7 @@ async def _page_context(request: Request, *, active_page: str) -> dict[str, Any]
     return {
         "request": request,
         "app_name": app_state.config.app_name,
+        "app_asset_version": f"{app_state.config.app_version}-{app_state.config.app_build_sha[:8] or 'dev'}",
         "page_title": translate(locale, PAGE_TITLES[active_page]),
         "active_page": active_page,
         "navigation": _localized_navigation(locale),

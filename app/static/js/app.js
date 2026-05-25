@@ -561,6 +561,7 @@ function bindSettingsPage() {
         gitLocalCommitText: byId("gitLocalCommitText"),
         gitRemoteCommitText: byId("gitRemoteCommitText"),
         gitMessageText: byId("gitMessageText"),
+        saveGitBtn: byId("saveGitBtn"),
         checkGitBtn: byId("checkGitBtn"),
         importGitBtn: byId("importGitBtn"),
         updateGitBtn: byId("updateGitBtn"),
@@ -570,7 +571,6 @@ function bindSettingsPage() {
         gitPreviewGrid: byId("gitPreviewGrid"),
         gitHistoryBody: byId("gitHistoryBody"),
     });
-
     els.savePanelBtn?.addEventListener("click", savePanelMeta);
     els.checkAppUpdateBtn?.addEventListener("click", () => refreshAppUpdate({ silent: false }));
     bindGitDeployButtons();
@@ -848,6 +848,7 @@ function bindStartupPage() {
         gitLocalCommitText: byId("gitLocalCommitText"),
         gitRemoteCommitText: byId("gitRemoteCommitText"),
         gitMessageText: byId("gitMessageText"),
+        saveGitBtn: byId("saveGitBtn"),
         checkGitBtn: byId("checkGitBtn"),
         importGitBtn: byId("importGitBtn"),
         updateGitBtn: byId("updateGitBtn"),
@@ -879,6 +880,7 @@ function bindStartupPage() {
 }
 
 function bindGitDeployButtons() {
+    els.saveGitBtn?.addEventListener("click", () => saveGitDeploy({ silent: false }));
     els.checkGitBtn?.addEventListener("click", async () => {
         if (!(await saveGitDeploy({ silent: true }))) return;
         await runGitAction("/api/git-deploy/check", "toast.git_checked");

@@ -3801,3 +3801,42 @@ body[data-page="console"] .mascot-help-button {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Settings page git deployment card spans full width */
+.settings-grid .kb-card.kb-card-wide {
+    grid-column: 1 / -1;
+}
+
+.git-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px 18px;
+    margin-bottom: 14px;
+}
+
+.git-protected-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.git-history .table-wrap {
+    overflow: auto;
+    border: 1px solid var(--divider);
+    border-radius: 10px;
+    margin-top: 10px;
+}
+
+.git-history table {
+    width: 100%;
+    min-width: 600px;
+}
+
+@media (max-width: 760px) {
+    .git-form-grid,
+    .git-protected-grid {
+        grid-template-columns: 1fr;
+    }
+}

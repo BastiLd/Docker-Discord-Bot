@@ -104,9 +104,9 @@
         </div>
     </article>
 
-    <article class="kb-card">
+    <article class="kb-card kb-card-wide">
         <h2 class="card-title">{{ ui["git.heading"] }}</h2>
-        <div class="field-grid field-grid-single">
+        <div class="git-form-grid">
             <label class="field">
                 <span>{{ ui["git.repo_url"] }}</span>
                 <input id="gitRepoInput" type="url" placeholder="https://github.com/user/repo">
@@ -132,25 +132,27 @@
                 <span>{{ ui["git.keep_user_data"] }}</span>
             </label>
         </div>
-        <fieldset class="kb-fieldset" id="gitProtectedSection">
-            <legend>{{ ui["git.protected_paths"] }}</legend>
-            <p class="surface-note">{{ ui["git.protected_paths_help"] }}</p>
-            <div class="git-protected-list" id="gitProtectedList">
-                <p class="surface-note" id="gitProtectedEmpty">{{ ui["git.protected_paths_empty"] }}</p>
-            </div>
-            <div class="card-actions card-actions-end">
-                <button class="btn btn-secondary" id="refreshProtectedBtn" type="button">{{ ui["git.protected_refresh"] }}</button>
-            </div>
-        </fieldset>
-        <fieldset class="kb-fieldset" id="gitExtraPatternSection">
-            <legend>{{ ui["git.protected_extra"] }}</legend>
-            <p class="surface-note">{{ ui["git.protected_extra_help"] }}</p>
-            <div class="extra-pattern-row">
-                <input id="gitExtraPatternInput" type="text" placeholder="{{ ui['git.protected_extra_placeholder'] }}">
-                <button class="btn btn-primary" id="addExtraPatternBtn" type="button">{{ ui["git.protected_add"] }}</button>
-            </div>
-            <ul class="extra-pattern-list" id="gitExtraPatternList"></ul>
-        </fieldset>
+        <div class="git-protected-grid">
+            <fieldset class="kb-fieldset" id="gitProtectedSection">
+                <legend>{{ ui["git.protected_paths"] }}</legend>
+                <p class="surface-note">{{ ui["git.protected_paths_help"] }}</p>
+                <div class="git-protected-list" id="gitProtectedList">
+                    <p class="surface-note" id="gitProtectedEmpty">{{ ui["git.protected_paths_empty"] }}</p>
+                </div>
+                <div class="card-actions card-actions-end">
+                    <button class="btn btn-secondary btn-sm" id="refreshProtectedBtn" type="button">{{ ui["git.protected_refresh"] }}</button>
+                </div>
+            </fieldset>
+            <fieldset class="kb-fieldset" id="gitExtraPatternSection">
+                <legend>{{ ui["git.protected_extra"] }}</legend>
+                <p class="surface-note">{{ ui["git.protected_extra_help"] }}</p>
+                <div class="extra-pattern-row">
+                    <input id="gitExtraPatternInput" type="text" placeholder="{{ ui['git.protected_extra_placeholder'] }}">
+                    <button class="btn btn-primary btn-sm" id="addExtraPatternBtn" type="button">{{ ui["git.protected_add"] }}</button>
+                </div>
+                <ul class="extra-pattern-list" id="gitExtraPatternList"></ul>
+            </fieldset>
+        </div>
         <dl class="info-table compact-table">
             <div>
                 <dt>{{ ui["git.status"] }}</dt>
@@ -170,6 +172,7 @@
             </div>
         </dl>
         <div class="card-actions card-actions-end">
+            <button class="btn btn-secondary" id="saveGitBtn" type="button">{{ ui["common.save"] }}</button>
             <button class="btn btn-secondary" id="checkGitBtn" type="button">{{ ui["git.check"] }}</button>
             <button class="btn btn-secondary" id="previewGitBtn" type="button">{{ ui["git.preview"] }}</button>
             <button class="btn btn-secondary" id="importGitBtn" type="button">{{ ui["git.import"] }}</button>
@@ -182,18 +185,20 @@
         </section>
         <section class="git-history">
             <h3 class="card-title">{{ ui["git.history"] }}</h3>
-            <table class="data-table compact-table">
-                <thead>
-                    <tr>
-                        <th>{{ ui["git.history_when"] }}</th>
-                        <th>{{ ui["git.history_action"] }}</th>
-                        <th>{{ ui["git.history_change"] }}</th>
-                        <th>{{ ui["git.local_commit"] }}</th>
-                        <th>{{ ui["backups.actions"] }}</th>
-                    </tr>
-                </thead>
-                <tbody id="gitHistoryBody"></tbody>
-            </table>
+            <div class="table-wrap">
+                <table class="data-table compact-table">
+                    <thead>
+                        <tr>
+                            <th>{{ ui["git.history_when"] }}</th>
+                            <th>{{ ui["git.history_action"] }}</th>
+                            <th>{{ ui["git.history_change"] }}</th>
+                            <th>{{ ui["git.local_commit"] }}</th>
+                            <th>{{ ui["backups.actions"] }}</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gitHistoryBody"></tbody>
+                </table>
+            </div>
         </section>
     </article>
 
