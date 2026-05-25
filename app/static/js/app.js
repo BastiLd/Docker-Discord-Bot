@@ -570,12 +570,76 @@ function bindSettingsPage() {
         gitPreviewMessage: byId("gitPreviewMessage"),
         gitPreviewGrid: byId("gitPreviewGrid"),
         gitHistoryBody: byId("gitHistoryBody"),
+        gitCheckoutInput: byId("gitCheckoutInput"),
+        gitCheckoutSelect: byId("gitCheckoutSelect"),
+        gitCheckoutKeepInput: byId("gitCheckoutKeepInput"),
+        gitCheckoutBtn: byId("gitCheckoutBtn"),
     });
     els.savePanelBtn?.addEventListener("click", savePanelMeta);
     els.checkAppUpdateBtn?.addEventListener("click", () => refreshAppUpdate({ silent: false }));
     bindGitDeployButtons();
     applyGitDeployToForm();
+    bindGitCheckoutCard();
     refreshAppUpdate({ silent: true });
+}
+
+function bindGitCheckoutCard() {
+    if (!els.gitCheckoutBtn) return;
+    els.gitCheckoutBtn.addEventListener("click", runGitCheckout);
+    els.gitCheckoutSelect?.addEventListener("change", () => {
+        if (els.gitCheckoutSelect.value && els.gitCheckoutInput) {
+            els.gitCheckoutInput.value = els.gitCheckoutSelect.value;
+        }
+    });
+    refreshGitCommits();
+}
+
+async function refreshGitCommits() {
+    if (!els.gitCheckoutSelect) return;
+    try {
+        const payload = await api("/api/git-deploy/commits");
+        const items = Array.isArray(payload.items) ? payload.items : [];
+        if (!items.length) {
+            els.gitCheckoutSelect.innerHTML = `<option value="">--</option>`;
+            return;
+        }
+        els.gitCheckoutSelect.innerHTML = `<option value="">--</option>` + items
+            .map((commit) => {
+                const sha = commit.sha || "";
+                const subject = (commit.subject || "").slice(0, 70);
+                const date = (commit.date || "").slice(0, 10);
+                return `<option value="${escapeHtml(sha)}">${escapeHtml(sha.slice(0, 8))} · ${escapeHtml(date)} · ${escapeHtml(subject)}</option>`;
+            })
+            .join("");
+    } catch (error) {
+        // empty list when not imported yet
+        els.gitCheckoutSelect.innerHTML = `<option value="">--</option>`;
+        void error;
+    }
+}
+
+async function runGitCheckout() {
+    const value = (els.gitCheckoutInput?.value || els.gitCheckoutSelect?.value || "").trim();
+    if (!value) {
+        showToast(tr("git.checkout_input"), "error");
+        return;
+    }
+    if (!window.confirm(tr("git.update_confirm"))) return;
+    if (!(await saveGitDeploy({ silent: true }))) return;
+    try {
+        state.gitDeploy = await api("/api/git-deploy/checkout", {
+            method: "POST",
+            body: JSON.stringify({
+                commit: value,
+                keep_user_data: Boolean(els.gitCheckoutKeepInput?.checked),
+            }),
+        });
+        applyGitDeployToForm();
+        await refreshGitCommits();
+        showToastKey("git.checkout_done");
+    } catch (error) {
+        showToast(error.message, "error");
+    }
 }
 
 async function savePanelMeta() {
@@ -698,6 +762,7 @@ function bindBackupsPage() {
         retentionCustomInput: byId("retentionCustomInput"),
         retentionCustomField: byId("retentionCustomField"),
         saveRetentionBtn: byId("saveRetentionBtn"),
+        restoreKeepUserDataInput: byId("restoreKeepUserDataInput"),
     });
 
     els.createBackupBtn?.addEventListener("click", async () => {
@@ -723,6 +788,21 @@ function bindBackupsPage() {
                 await api(`/api/backups/${encodeURIComponent(name)}`, { method: "DELETE" });
                 await refreshBackups();
                 showToastKey("toast.backup_deleted");
+            } catch (error) {
+                showToast(error.message, "error");
+            }
+            return;
+        }
+        if (button.dataset.action === "restore") {
+            const keepUserData = Boolean(els.restoreKeepUserDataInput?.checked);
+            if (!window.confirm(tr("backups.restore_confirm", { name }))) return;
+            try {
+                await api("/api/backups/restore", {
+                    method: "POST",
+                    body: JSON.stringify({ name, keep_user_data: keepUserData }),
+                });
+                showToastKey("backups.restore_done");
+                await refreshBackups();
             } catch (error) {
                 showToast(error.message, "error");
             }
@@ -794,6 +874,7 @@ function renderBackups() {
                 <td>${escapeHtml(item.checksum || "-")}</td>
                 <td>
                     <div class="file-actions">
+                        <button class="file-action-link" type="button" data-action="restore" data-name="${escapeHtml(item.name)}">${escapeHtml(tr("backups.restore"))}</button>
                         <button class="file-action-link" type="button" data-action="download" data-name="${escapeHtml(item.name)}">${escapeHtml(tr("common.download"))}</button>
                         <button class="file-action-link" type="button" data-action="delete" data-name="${escapeHtml(item.name)}">${escapeHtml(tr("common.delete"))}</button>
                     </div>
@@ -806,6 +887,7 @@ function renderBackups() {
 function bindConsolePage() {
     Object.assign(els, {
         consoleFilterButtons: queryAll("[data-console-filter]"),
+        clearTaskOutputBtn: byId("clearTaskOutputBtn"),
     });
     els.consoleFilterButtons?.forEach((button) => {
         button.addEventListener("click", () => {
@@ -814,8 +896,19 @@ function bindConsolePage() {
             renderTaskOutput();
         });
     });
+    els.clearTaskOutputBtn?.addEventListener("click", clearTaskOutputView);
     updateConsoleFilterButtons();
     bindTaskPage({ withConsoleForm: true });
+}
+
+function clearTaskOutputView() {
+    state.activeTaskId = null;
+    state.activeTaskOutput = "";
+    renderTaskOutput();
+    api("/api/tasks/clear", { method: "POST" })
+        .then(() => refreshTasks({ silent: true }))
+        .catch((error) => showToast(error.message, "error"));
+    showToastKey("toast.tasks_cleared");
 }
 
 function bindStartupPage() {
@@ -857,6 +950,7 @@ function bindStartupPage() {
         gitPreviewMessage: byId("gitPreviewMessage"),
         gitPreviewGrid: byId("gitPreviewGrid"),
         gitHistoryBody: byId("gitHistoryBody"),
+        clearStartupOutputBtn: byId("clearStartupOutputBtn"),
     });
 
     applySettingsToForm();
@@ -867,6 +961,7 @@ function bindStartupPage() {
     els.saveSettingsBtn?.addEventListener("click", saveSettings);
     els.refreshStartupBtn?.addEventListener("click", refreshStartupPage);
     els.installDepsBtn?.addEventListener("click", () => startTask("/api/tasks/install-deps", {}));
+    els.clearStartupOutputBtn?.addEventListener("click", clearTaskOutputView);
     bindGitDeployButtons();
     els.installPackageBtn?.addEventListener("click", () => {
         const packageName = els.packageInput?.value.trim() || "";
@@ -1055,7 +1150,7 @@ async function handleHistoryClick(event) {
     try {
         state.gitDeploy = await api("/api/git-deploy/rollback", {
             method: "POST",
-            body: JSON.stringify({ backup_name: backup }),
+            body: JSON.stringify({ backup_name: backup, keep_user_data: true }),
         });
         applyGitDeployToForm();
         showToastKey("toast.git_rolled_back");
@@ -2822,11 +2917,14 @@ function bindHistoryAndLogs() {
         dashboardLogPreview: byId("dashboardLogPreview"),
         downloadLogsLink: byId("downloadLogsLink"),
         logTabButtons: queryAll("[data-log-tab]"),
+        clearLogBtn: byId("clearLogBtn"),
     });
 
     els.logTabButtons.forEach((button) => {
         button.addEventListener("click", () => switchLogTab(button.dataset.logTab || "bot"));
     });
+
+    els.clearLogBtn?.addEventListener("click", clearActiveLogChannel);
 
     if (els.dashboardLogPreview || els.logOutput) {
         connectLogSocket("bot");
@@ -2835,6 +2933,18 @@ function bindHistoryAndLogs() {
         connectLogSocket("system");
     }
     renderLogSurfaces();
+}
+
+async function clearActiveLogChannel() {
+    const channel = state.logTab || "bot";
+    try {
+        await api(`/api/logs/${channel}/clear`, { method: "POST" });
+        state.logBuffers[channel] = [];
+        renderLogSurfaces();
+        showToastKey("toast.log_cleared");
+    } catch (error) {
+        showToast(error.message, "error");
+    }
 }
 
 function bindTour() {

@@ -10,6 +10,7 @@ from starlette.background import BackgroundTask
 
 from app.core.i18n import LOCALE_COOKIE, locale_cookie_value, translate, translations_for
 from app.core.schemas import (
+    BackupRestoreRequest,
     BackupRetentionUpdateRequest,
     BotSettingsModel,
     ConsoleCommandRequest,
@@ -22,6 +23,7 @@ from app.core.schemas import (
     DeleteEntriesRequest,
     DownloadSelectionRequest,
     ExtractArchiveRequest,
+    GitDeployCheckoutRequest,
     GitDeployProtectedAddRequest,
     GitDeployRollbackRequest,
     GitDeployUpdateRequest,
@@ -453,10 +455,34 @@ async def remove_protected_pattern(request: Request, pattern: str) -> JSONRespon
 @router.post("/api/git-deploy/rollback")
 async def rollback_git_deploy(request: Request, payload: GitDeployRollbackRequest) -> JSONResponse:
     try:
-        result = await _services(request).git_deploy_service.rollback(payload.backup_name)
+        result = await _services(request).git_deploy_service.rollback(
+            payload.backup_name,
+            keep_user_data=payload.keep_user_data,
+        )
     except Exception as exc:  # noqa: BLE001
         _raise_bad_request(exc)
     return JSONResponse(result)
+
+
+@router.post("/api/git-deploy/checkout")
+async def checkout_git_commit(request: Request, payload: GitDeployCheckoutRequest) -> JSONResponse:
+    try:
+        result = await _services(request).git_deploy_service.checkout_commit(
+            payload.commit,
+            keep_user_data=payload.keep_user_data,
+        )
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse(result)
+
+
+@router.get("/api/git-deploy/commits")
+async def list_recent_commits(request: Request, limit: int = 30) -> JSONResponse:
+    try:
+        items = await _services(request).git_deploy_service.list_recent_commits(limit=limit)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse({"items": items})
 
 
 @router.get("/api/backups/retention")
@@ -469,6 +495,18 @@ async def save_backup_retention(request: Request, payload: BackupRetentionUpdate
     settings = _services(request).backup_service.update_retention(payload)
     await _services(request).log_service.write("system", "Backup-Retention aktualisiert.")
     return JSONResponse(settings.model_dump(mode="json"))
+
+
+@router.post("/api/backups/restore")
+async def restore_backup(request: Request, payload: BackupRestoreRequest) -> JSONResponse:
+    try:
+        result = await _services(request).git_deploy_service.rollback(
+            payload.name,
+            keep_user_data=payload.keep_user_data,
+        )
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse(result)
 
 
 @router.get("/api/app-update")
@@ -817,6 +855,21 @@ async def delete_schedule(request: Request, schedule_id: str) -> JSONResponse:
     except Exception as exc:  # noqa: BLE001
         _raise_bad_request(exc)
     return JSONResponse({"ok": True})
+
+
+@router.post("/api/logs/{channel}/clear")
+async def clear_log_channel(request: Request, channel: str) -> JSONResponse:
+    if channel not in {"bot", "system"}:
+        raise HTTPException(status_code=404, detail="Unknown log channel.")
+    await _services(request).log_service.clear(channel)
+    await _services(request).log_service.write("system", f"Log {channel} geleert.")
+    return JSONResponse({"ok": True, "channel": channel})
+
+
+@router.post("/api/tasks/clear")
+async def clear_finished_tasks(request: Request) -> JSONResponse:
+    removed = await _services(request).task_manager.clear_tasks()
+    return JSONResponse({"ok": True, "removed": removed})
 
 
 @router.get("/api/logs/{channel}/download")

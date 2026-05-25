@@ -86,6 +86,21 @@ class TaskManager:
     async def list_tasks(self) -> list[dict]:
         return [self._tasks[task_id].serialize() for task_id in reversed(self._task_order)]
 
+    async def clear_tasks(self) -> int:
+        async with self._task_lock:
+            removed = 0
+            for task_id in list(self._task_order):
+                task = self._tasks.get(task_id)
+                if task is None:
+                    self._task_order.remove(task_id)
+                    continue
+                if task.status in {"pending", "running"}:
+                    continue
+                self._tasks.pop(task_id, None)
+                self._task_order.remove(task_id)
+                removed += 1
+            return removed
+
     async def get_task(self, task_id: str) -> dict:
         task = self._tasks.get(task_id)
         if task is None:

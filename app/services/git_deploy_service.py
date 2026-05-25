@@ -208,7 +208,7 @@ class GitDeployService:
                 requires_existing=True,
             )
 
-    async def rollback(self, backup_name: str) -> dict:
+    async def rollback(self, backup_name: str, keep_user_data: bool = True) -> dict:
         async with self._lock:
             backup_path = self.backup_service.resolve(backup_name)
             entry = self._find_history_entry(backup_name)
@@ -224,13 +224,23 @@ class GitDeployService:
                 f"Sicherheits-Backup vor Rollback erstellt: {safety_backup['name']}",
             )
 
-            self._clear_workspace()
-            self._restore_backup_zip(backup_path)
+            patterns = self._effective_patterns() if keep_user_data else []
+            preserved: list[str] = []
+            with tempfile.TemporaryDirectory(prefix="git-deploy-keep-") as keep_dir:
+                if patterns:
+                    preserved = self._stash_protected(Path(keep_dir), patterns)
+                self._clear_workspace()
+                self._restore_backup_zip(backup_path)
+                if preserved:
+                    self._restore_protected(Path(keep_dir), preserved)
             local_commit = await self._local_commit()
 
             if was_running and self._settings.restart_after_update:
                 await self.bot_manager.start()
 
+            base_message = f"Rollback auf Backup {backup_name}."
+            if preserved:
+                base_message += f" Behaltene Pfade: {', '.join(preserved)}."
             history_entry = GitDeployHistoryEntry(
                 timestamp=isoformat(utc_now()),
                 action="rollback",
@@ -240,8 +250,8 @@ class GitDeployService:
                 added=0,
                 modified=0,
                 removed=0,
-                kept=0,
-                message=f"Rollback auf Backup {backup_name}.",
+                kept=len(preserved),
+                message=base_message,
             )
             history = [history_entry, *self._settings.history][:HISTORY_LIMIT]
 
@@ -251,13 +261,58 @@ class GitDeployService:
                     "last_remote_commit": local_commit,
                     "last_updated_at": isoformat(utc_now()),
                     "status": "rolled_back",
-                    "message": history_entry.message,
+                    "message": base_message,
                     "history": history,
                 }
             )
             self._save()
             await self.log_service.write("system", f"Git-Repo per Rollback zurückgesetzt: {backup_name}")
             return self.get()
+
+    async def checkout_commit(self, commit_value: str, keep_user_data: bool = True) -> dict:
+        async with self._lock:
+            commit_sha = self._parse_commit_input(commit_value)
+            repo_url, branch = self._require_config()
+            if not (self.workspace_dir / ".git").exists():
+                raise ValueError("Repository ist noch nicht importiert. Bitte zuerst importieren.")
+            return await self._run_replace_workflow(
+                action="checkout",
+                repo_url=repo_url,
+                branch=branch,
+                requires_existing=True,
+                checkout_ref=commit_sha,
+                keep_user_data_override=keep_user_data,
+            )
+
+    async def list_recent_commits(self, limit: int = 30) -> list[dict]:
+        if not (self.workspace_dir / ".git").exists():
+            return []
+        try:
+            output = await self._run_git(
+                [
+                    "git",
+                    "log",
+                    f"-n{max(1, min(limit, 100))}",
+                    "--pretty=format:%H%x09%s%x09%ai%x09%an",
+                ],
+                cwd=self.workspace_dir,
+            )
+        except ValueError:
+            return []
+        commits: list[dict] = []
+        for line in output.splitlines():
+            parts = line.split("\t")
+            if len(parts) < 4:
+                continue
+            commits.append(
+                {
+                    "sha": parts[0],
+                    "subject": parts[1],
+                    "date": parts[2],
+                    "author": parts[3],
+                }
+            )
+        return commits
 
     async def maybe_auto_update(self) -> None:
         if not self._settings.auto_update or not self._settings.repo_url:
@@ -312,6 +367,8 @@ class GitDeployService:
         repo_url: str,
         branch: str,
         requires_existing: bool,
+        checkout_ref: str | None = None,
+        keep_user_data_override: bool | None = None,
     ) -> dict:
         was_running = (await self.bot_manager.status()).get("state") == "running"
         if was_running:
@@ -323,26 +380,33 @@ class GitDeployService:
         backup = self.backup_service.create_backup()
         await self.log_service.write("system", f"Backup vor Git-{action} erstellt: {backup['name']}")
 
-        patterns = self._effective_patterns()
+        keep_user_data = (
+            self._settings.keep_user_data if keep_user_data_override is None else keep_user_data_override
+        )
+        patterns = self._effective_patterns() if keep_user_data else []
         with tempfile.TemporaryDirectory(prefix="git-deploy-keep-") as keep_dir:
             preserved = self._stash_protected(Path(keep_dir), patterns)
             self._clear_workspace()
-            if action == "import":
-                await self._run_git(
-                    ["git", "clone", "--branch", branch, "--single-branch", repo_url, "."],
-                    cwd=self.workspace_dir,
-                )
-            else:
-                await self._run_git(["git", "clone", "--branch", branch, "--single-branch", repo_url, "."], cwd=self.workspace_dir)
+            await self._run_git(
+                ["git", "clone", "--branch", branch, "--single-branch", repo_url, "."],
+                cwd=self.workspace_dir,
+            )
+            if checkout_ref:
+                # Fetch full history first so an arbitrary SHA can be checked out.
+                try:
+                    await self._run_git(["git", "fetch", "--unshallow"], cwd=self.workspace_dir)
+                except ValueError:
+                    # Repo was not shallow, ignore.
+                    pass
+                await self._run_git(["git", "fetch", "origin", checkout_ref], cwd=self.workspace_dir)
+                await self._run_git(["git", "checkout", "--detach", checkout_ref], cwd=self.workspace_dir)
             self._restore_protected(Path(keep_dir), preserved)
 
         local_commit = await self._local_commit()
         after_paths = self._collect_workspace_files()
         added = sorted(after_paths - before_paths)
         removed = sorted(before_paths - after_paths)
-        modified_count = max(len(after_paths & before_paths) - sum(1 for _ in ()), 0)
-        # for honest counts of modified files we rely on git diff only when both commits exist
-        modified = []
+        modified: list[str] = []
         if from_commit and local_commit and from_commit != local_commit:
             try:
                 diff = await self._run_git(
@@ -362,14 +426,17 @@ class GitDeployService:
         report = self.workspace_report()
         if action == "import":
             base_message = "Repository importiert."
-        else:
+        elif action == "update":
             base_message = "Repository aktualisiert."
+        else:
+            base_message = f"Workspace auf Commit {local_commit[:12] if local_commit else checkout_ref} gesetzt."
         if preserved:
             base_message += f" Behaltene Pfade: {', '.join(preserved)}."
 
+        history_action: str = action if action in {"import", "update", "rollback"} else "checkout"
         history_entry = GitDeployHistoryEntry(
             timestamp=isoformat(utc_now()),
-            action=action,  # type: ignore[arg-type]
+            action=history_action,  # type: ignore[arg-type]
             from_commit=from_commit,
             to_commit=local_commit,
             backup_name=backup["name"],
@@ -381,7 +448,12 @@ class GitDeployService:
         )
         history = [history_entry, *self._settings.history][:HISTORY_LIMIT]
 
-        status = "imported" if action == "import" else "updated"
+        if action == "import":
+            status = "imported"
+        elif action == "update":
+            status = "updated"
+        else:
+            status = "checked_out"
         self._settings = self._settings.model_copy(
             update={
                 "last_commit": local_commit,
@@ -394,9 +466,28 @@ class GitDeployService:
         )
         self._save()
         await self.log_service.write("system", f"Git-Repo {action}: {repo_url} ({branch})")
-        # silence unused warning
-        _ = modified_count
         return self.get()
+
+    @staticmethod
+    def _parse_commit_input(value: str) -> str:
+        cleaned = (value or "").strip()
+        if not cleaned:
+            raise ValueError("Bitte einen Commit-SHA oder eine GitHub-Commit-URL eingeben.")
+        # Accept GitHub URLs like https://github.com/user/repo/commit/<sha>
+        if cleaned.startswith(("http://", "https://")):
+            parsed = urlparse(cleaned)
+            parts = [part for part in parsed.path.split("/") if part]
+            for index, part in enumerate(parts):
+                if part in {"commit", "commits"} and index + 1 < len(parts):
+                    candidate = parts[index + 1]
+                    break
+            else:
+                raise ValueError("URL muss auf einen GitHub-Commit zeigen, z. B. .../commit/<sha>.")
+            cleaned = candidate
+        cleaned = cleaned.split("?")[0].split("#")[0]
+        if not re.fullmatch(r"[A-Fa-f0-9]{4,40}", cleaned):
+            raise ValueError("Commit-SHA ist ungültig. Bitte einen 4–40 Zeichen langen Hex-Hash eingeben.")
+        return cleaned
 
     # ---- internal: protected-paths -------------------------------------
 
@@ -710,4 +801,5 @@ class GitDeployService:
             "update_available": "Update verfügbar.",
             "not_imported": "Repository ist gespeichert, aber noch nicht importiert.",
             "rolled_back": "Workspace per Rollback wiederhergestellt.",
+            "checked_out": "Workspace auf gewählten Commit gesetzt.",
         }.get(status, status)

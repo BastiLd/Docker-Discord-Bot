@@ -59,6 +59,22 @@ class LogService:
             for queue in stale_queues:
                 self._subscribers[channel].discard(queue)
 
+    async def clear(self, channel: str) -> None:
+        if channel not in self._files:
+            raise ValueError(f"Unbekannter Log-Kanal: {channel}")
+        async with self._lock:
+            self._buffers[channel].clear()
+            self._files[channel].write_text("", encoding="utf-8")
+            sentinel = "[--- log cleared ---]"
+            stale_queues: list[asyncio.Queue[str]] = []
+            for queue in list(self._subscribers[channel]):
+                try:
+                    queue.put_nowait(sentinel)
+                except asyncio.QueueFull:
+                    stale_queues.append(queue)
+            for queue in stale_queues:
+                self._subscribers[channel].discard(queue)
+
     def _preload(self, channel: str, path: Path, max_lines: int = 300) -> None:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[-max_lines:]
         self._buffers[channel].extend(lines)

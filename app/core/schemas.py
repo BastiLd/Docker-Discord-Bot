@@ -24,9 +24,14 @@ class BackupRetentionUpdateRequest(BaseModel):
     custom_days: int = Field(default=30, ge=1, le=3650)
 
 
+class BackupRestoreRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    keep_user_data: bool = True
+
+
 class GitDeployHistoryEntry(BaseModel):
     timestamp: str
-    action: Literal["import", "update", "rollback"]
+    action: Literal["import", "update", "rollback", "checkout"]
     from_commit: str = ""
     to_commit: str = ""
     backup_name: str = ""
@@ -80,6 +85,12 @@ class GitDeployProtectedAddRequest(BaseModel):
 
 class GitDeployRollbackRequest(BaseModel):
     backup_name: str = Field(min_length=1, max_length=200)
+    keep_user_data: bool = True
+
+
+class GitDeployCheckoutRequest(BaseModel):
+    commit: str = Field(min_length=4, max_length=300)
+    keep_user_data: bool = True
 
 
 class CreateServerRequest(BaseModel):

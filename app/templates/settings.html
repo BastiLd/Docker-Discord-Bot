@@ -200,6 +200,25 @@
                 </table>
             </div>
         </section>
+        <section class="git-checkout">
+            <h3 class="card-title">{{ ui["git.checkout"] }}</h3>
+            <p class="surface-note">{{ ui["git.checkout_help"] }}</p>
+            <div class="git-checkout-row">
+                <label class="field grow-field">
+                    <span>{{ ui["git.checkout_input"] }}</span>
+                    <input id="gitCheckoutInput" type="text" placeholder="https://github.com/&lt;user&gt;/&lt;repo&gt;/commit/&lt;sha&gt;">
+                </label>
+                <label class="field">
+                    <span>{{ ui["git.checkout_recent"] }}</span>
+                    <select id="gitCheckoutSelect"><option value="">--</option></select>
+                </label>
+                <label class="checkbox-field">
+                    <input id="gitCheckoutKeepInput" type="checkbox" checked>
+                    <span>{{ ui["git.checkout_keep_user_data"] }}</span>
+                </label>
+                <button class="btn btn-primary" id="gitCheckoutBtn" type="button">{{ ui["git.checkout_run"] }}</button>
+            </div>
+        </section>
     </article>
 
     <article class="kb-card settings-reinstall">
