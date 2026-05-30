@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, File, Form, HTTPException, Request, Response, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from starlette.background import BackgroundTask
 
@@ -14,8 +14,8 @@ from app.core.schemas import (
     BackupRetentionUpdateRequest,
     BotSettingsModel,
     ConsoleCommandRequest,
-    CreateServerRequest,
     CreateEntryRequest,
+    CreateServerRequest,
     DatabaseCellUpdateRequest,
     DatabaseQueryRequest,
     DatabaseRowCreateRequest,
@@ -35,8 +35,8 @@ from app.core.schemas import (
     SaveScheduleRequest,
     TransferEntriesRequest,
 )
+from app.core.security import SESSION_USER_KEY, auth_enabled, safe_next_path, verify_credentials
 from app.services.app_update_service import AppUpdateService
-
 
 router = APIRouter()
 ACTIVE_SERVER_COOKIE = "active_server_id"
@@ -103,7 +103,11 @@ def _registry(request: Request):
 
 
 def _active_server_id(request: Request) -> str | None:
-    return request.query_params.get("server_id") or request.headers.get("x-server-id") or request.cookies.get(ACTIVE_SERVER_COOKIE)
+    return (
+        request.query_params.get("server_id")
+        or request.headers.get("x-server-id")
+        or request.cookies.get(ACTIVE_SERVER_COOKIE)
+    )
 
 
 def _services(request: Request):
@@ -217,6 +221,57 @@ async def _render_page(request: Request, template_name: str, *, active_page: str
         template_name,
         await _page_context(request, active_page=active_page),
     )
+
+
+def _render_login(
+    request: Request, *, next_url: str = "/", error: bool = False, status_code: int = 200
+) -> HTMLResponse:
+    app_state = _app_state(request)
+    locale = _locale(request)
+    return app_state.templates.TemplateResponse(
+        request,
+        "login.html",
+        {
+            "request": request,
+            "app_name": app_state.config.app_name,
+            "page_title": translate(locale, "login.title"),
+            "locale": locale,
+            "ui": translations_for(locale),
+            "next_url": safe_next_path(next_url),
+            "login_error": error,
+        },
+        status_code=status_code,
+    )
+
+
+@router.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request, next: str = "/") -> Response:
+    config = _app_state(request).config
+    if not auth_enabled(config) or request.session.get(SESSION_USER_KEY):
+        return RedirectResponse(url=safe_next_path(next), status_code=303)
+    return _render_login(request, next_url=next)
+
+
+@router.post("/login", response_class=HTMLResponse)
+async def login_submit(
+    request: Request,
+    username: str = Form(default=""),
+    password: str = Form(default=""),
+    next: str = Form(default="/"),
+) -> Response:
+    config = _app_state(request).config
+    if not auth_enabled(config):
+        return RedirectResponse(url="/", status_code=303)
+    if verify_credentials(config, username, password):
+        request.session[SESSION_USER_KEY] = username
+        return RedirectResponse(url=safe_next_path(next), status_code=303)
+    return _render_login(request, next_url=next, error=True, status_code=401)
+
+
+@router.post("/logout")
+async def logout(request: Request) -> RedirectResponse:
+    request.session.clear()
+    return RedirectResponse(url="/login", status_code=303)
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -549,7 +604,9 @@ async def restart_bot(request: Request) -> JSONResponse:
     except Exception as exc:  # noqa: BLE001
         await runtime.task_manager.record_bot_action("restart", command_text, error=str(exc))
         _raise_bad_request(exc)
-    await runtime.task_manager.record_bot_action("restart", payload.get("last_command") or command_text, payload=payload)
+    await runtime.task_manager.record_bot_action(
+        "restart", payload.get("last_command") or command_text, payload=payload
+    )
     return JSONResponse(payload)
 
 
@@ -603,7 +660,9 @@ async def read_database_table(
 @router.put("/api/databases/cell")
 async def update_database_cell(request: Request, payload: DatabaseCellUpdateRequest) -> JSONResponse:
     try:
-        result = _services(request).database_service.update_cell(payload.path, payload.table, payload.rowid, payload.column, payload.value)
+        result = _services(request).database_service.update_cell(
+            payload.path, payload.table, payload.rowid, payload.column, payload.value
+        )
     except Exception as exc:  # noqa: BLE001
         _raise_bad_request(exc)
     return JSONResponse(result)
@@ -739,7 +798,9 @@ async def download_file(request: Request, path: str) -> FileResponse:
         _raise_bad_request(exc)
 
     if file_path.is_dir():
-        archive_path, archive_name = _services(request).file_service.create_download_archive([path], Path(path).name or "workspace")
+        archive_path, archive_name = _services(request).file_service.create_download_archive(
+            [path], Path(path).name or "workspace"
+        )
         return FileResponse(
             archive_path,
             media_type="application/zip",
@@ -766,7 +827,9 @@ async def download_selection(request: Request, payload: DownloadSelectionRequest
 
 @router.get("/api/env")
 async def get_env_entries(request: Request) -> JSONResponse:
-    return JSONResponse({"entries": [entry.model_dump(mode="json") for entry in _services(request).env_service.list_entries()]})
+    return JSONResponse(
+        {"entries": [entry.model_dump(mode="json") for entry in _services(request).env_service.list_entries()]}
+    )
 
 
 @router.put("/api/env")
@@ -914,6 +977,11 @@ async def install_package(request: Request, payload: InstallPackageRequest) -> J
 
 @router.post("/api/tasks/console")
 async def run_console_command(request: Request, payload: ConsoleCommandRequest) -> JSONResponse:
+    if not auth_enabled(_app_state(request).config):
+        raise HTTPException(
+            status_code=403,
+            detail="Konsole erfordert aktivierte UI-Authentifizierung (UI_USERNAME/UI_PASSWORD).",
+        )
     try:
         task = await _services(request).task_manager.start_console_command(payload.command)
     except Exception as exc:  # noqa: BLE001
@@ -927,9 +995,15 @@ async def websocket_logs(websocket: WebSocket, channel: str) -> None:
         await websocket.close(code=1008)
         return
 
+    if auth_enabled(websocket.app.state.config) and not websocket.session.get(SESSION_USER_KEY):
+        await websocket.close(code=1008)
+        return
+
     await websocket.accept()
     registry = websocket.app.state.server_registry_service
-    runtime = registry.get_runtime(websocket.query_params.get("server_id") or websocket.cookies.get(ACTIVE_SERVER_COOKIE))
+    runtime = registry.get_runtime(
+        websocket.query_params.get("server_id") or websocket.cookies.get(ACTIVE_SERVER_COOKIE)
+    )
     log_service = runtime.log_service
     queue = log_service.subscribe(channel)
 

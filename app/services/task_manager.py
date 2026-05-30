@@ -117,7 +117,9 @@ class TaskManager:
             str(self.config.venv_dir),
             "install-deps",
         ]
-        return await self._start_task("dependencies", "Abhaengigkeiten installieren", command, self.config.workspace_dir)
+        return await self._start_task(
+            "dependencies", "Abhaengigkeiten installieren", command, self.config.workspace_dir
+        )
 
     async def start_install_package(self, package_name: str) -> dict:
         command = [
@@ -130,7 +132,9 @@ class TaskManager:
             "install-package",
             package_name,
         ]
-        return await self._start_task("package", f"Paket installieren: {package_name}", command, self.config.workspace_dir)
+        return await self._start_task(
+            "package", f"Paket installieren: {package_name}", command, self.config.workspace_dir
+        )
 
     async def start_console_command(self, command_text: str) -> dict:
         command = self._validate_console_command(command_text)
@@ -270,6 +274,9 @@ class TaskManager:
                 raise ValueError("Absolute Pfade und '..' sind im Web-Terminal nicht erlaubt.")
 
         if executable in {"python", "python3", "py"}:
+            for argument in parts[1:]:
+                if argument == "-" or argument.startswith("-c") or argument.startswith("-m"):
+                    raise ValueError("'-c', '-m' und stdin (-) sind im sicheren Web-Terminal gesperrt.")
             return [sys.executable, *parts[1:]]
         if executable in {"pip", "pip3"}:
             return [sys.executable, "-m", "pip", *parts[1:]]

@@ -144,6 +144,7 @@ PGID=1000
 MAX_UPLOAD_MB=128
 UI_USERNAME=
 UI_PASSWORD=
+SESSION_SECRET=
 BACKUP_DIR=/data/backups
 ```
 
@@ -152,7 +153,9 @@ Hinweise:
 - `APP_PORT` ist der Web-Port deiner lokalen UI.
 - `PUID` und `PGID` sollten zu deinem NAS-/ZimaOS-User passen, damit Volumes sauber beschreibbar sind.
 - `BACKUP_DIR=/data/backups` sorgt dafuer, dass UI-Backups im Compose-Volume `./data/backups` landen.
-- Wenn `UI_USERNAME` und `UI_PASSWORD` leer bleiben, ist die UI ohne Login erreichbar. Dann nur lokal oder hinter VPN/Reverse Proxy nutzen.
+- Wenn `UI_USERNAME` und `UI_PASSWORD` gesetzt sind, erzwingt das Panel einen Login: UI, alle `/api/*`-Endpunkte und die Log-WebSockets sind dann nur nach Anmeldung erreichbar (Cookie-Session, Logout im Account-Menü).
+- Bleiben `UI_USERNAME`/`UI_PASSWORD` leer, ist die UI ohne Login erreichbar **und die Web-Konsole ist deaktiviert**. Dann nur lokal oder hinter VPN/Reverse Proxy nutzen.
+- `SESSION_SECRET` ist optional. Bleibt es leer, wird beim ersten Start ein dauerhaftes Zufalls-Secret unter `CONFIG_DIR/.session_secret` erzeugt, damit Sessions Neustarts überleben.
 
 ### 3. Container starten
 
@@ -222,10 +225,10 @@ python -m mybot
 ## Sicherheitshinweise
 
 - Bot-Token niemals hardcoden, sondern nur ueber `.env` setzen
-- Web-UI nicht ungeschuetzt ins Internet stellen
+- Web-UI nicht ungeschuetzt ins Internet stellen; fuer Remote-Zugriff `UI_USERNAME`/`UI_PASSWORD` setzen (erzwingt Login fuer UI, API und WebSockets)
 - Alle Dateizugriffe sind auf `data/workspace` beschraenkt
 - ZIP-Entpacken prueft unsichere Pfade und verhindert Pfad-Ausbrueche
-- Safe-Konsole blockiert triviale Shell-Injection-Muster und absolute Pfade
+- Safe-Konsole blockiert triviale Shell-Injection-Muster, absolute Pfade sowie `python -c`/`-m`/stdin und ist nur bei aktivierter UI-Authentifizierung nutzbar
 
 ## Backup-Strategie
 

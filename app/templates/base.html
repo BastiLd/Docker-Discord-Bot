@@ -85,6 +85,11 @@
                         {% if can_delete_active_server %}
                         <button type="button" id="deleteActiveServerBtn" class="menu-icon-delete">{{ ui["account.delete_server"] }}</button>
                         {% endif %}
+                        {% if auth_enabled %}
+                        <form method="post" action="/logout" class="account-logout-form">
+                            <button type="submit" class="menu-icon-logout">{{ ui["account.logout"] }}</button>
+                        </form>
+                        {% endif %}
                     </div>
                     </div>
                     <p class="workspace-path" title="{{ workspace_path }}">/data/workspace</p>

@@ -50,6 +50,45 @@ body {
     background: linear-gradient(180deg, var(--page-bg) 0%, var(--page-bg-deep) 100%);
 }
 
+.login-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 32px;
+}
+
+.login-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.05rem;
+}
+
+.login-title {
+    font-size: 1.5rem;
+    margin-top: 4px;
+}
+
+.login-error {
+    margin: 0;
+}
+
+.login-submit {
+    margin-top: 8px;
+    width: 100%;
+    justify-content: center;
+}
+
 a {
     color: inherit;
     text-decoration: none;

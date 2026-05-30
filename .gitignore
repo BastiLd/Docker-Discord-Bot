@@ -18,5 +18,12 @@ data/config/backup_retention.json
 data/config/servers/*/config/backup_retention.json
 data/logs/*.log
 data/venv/
+# Runtime per-server data and mutable top-level config (regenerated with defaults on start)
+data/config/servers/
+data/config/settings.json
+data/config/panel_meta.json
+data/config/servers.json
+data/config/schedules.json
+data/config/.session_secret
 app/static/.DS_Store
 .release-notes-*.md

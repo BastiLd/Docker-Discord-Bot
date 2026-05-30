@@ -354,6 +354,10 @@ async function api(path, options = {}) {
     const target = withServerParam(path);
     if (state.activeServerId) headers["X-Server-Id"] = state.activeServerId;
     const response = await fetch(target, { ...options, headers });
+    if (response.status === 401) {
+        window.location.href = "/login";
+        throw new Error("Authentication required");
+    }
     if (!response.ok) {
         throw new Error(await extractError(response));
     }

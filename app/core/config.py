@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import os
+import secrets
 from dataclasses import dataclass, replace
 from pathlib import Path
-
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 
@@ -11,6 +11,25 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 def _path_from_env(name: str, default: Path) -> Path:
     raw_value = os.getenv(name)
     return Path(raw_value).expanduser().resolve() if raw_value else default.resolve()
+
+
+def _load_or_create_session_secret(config_dir: Path) -> str:
+    env_secret = os.getenv("SESSION_SECRET")
+    if env_secret:
+        return env_secret
+
+    secret_file = config_dir / ".session_secret"
+    try:
+        existing = secret_file.read_text(encoding="utf-8").strip()
+        if existing:
+            return existing
+    except FileNotFoundError:
+        pass
+
+    secret = secrets.token_hex(32)
+    config_dir.mkdir(parents=True, exist_ok=True)
+    secret_file.write_text(secret, encoding="utf-8")
+    return secret
 
 
 @dataclass(slots=True)
@@ -27,6 +46,7 @@ class AppConfig:
     max_upload_mb: int
     ui_username: str | None
     ui_password: str | None
+    session_secret: str
     timezone: str
     app_version: str
     app_image_tag: str
@@ -40,7 +60,7 @@ class AppConfig:
         for path in (self.workspace_dir, self.config_dir, self.log_dir, self.backup_dir, self.venv_dir):
             path.mkdir(parents=True, exist_ok=True)
 
-    def for_server(self, server_id: str) -> "AppConfig":
+    def for_server(self, server_id: str) -> AppConfig:
         if server_id == "default":
             return self
 
@@ -79,8 +99,9 @@ def load_config() -> AppConfig:
         max_upload_mb=int(os.getenv("MAX_UPLOAD_MB", "128")),
         ui_username=os.getenv("UI_USERNAME") or None,
         ui_password=os.getenv("UI_PASSWORD") or None,
+        session_secret=_load_or_create_session_secret(config_dir),
         timezone=os.getenv("TZ", "UTC"),
-        app_version=os.getenv("APP_VERSION", "0.4.0"),
-        app_image_tag=os.getenv("APP_IMAGE_TAG", os.getenv("APP_VERSION", "0.4.0")),
+        app_version=os.getenv("APP_VERSION", "0.5.0"),
+        app_image_tag=os.getenv("APP_IMAGE_TAG", os.getenv("APP_VERSION", "0.5.0")),
         app_build_sha=os.getenv("APP_BUILD_SHA", "unknown"),
     )

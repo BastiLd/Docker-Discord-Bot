@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 
 {% block page_body %}
+{% if not auth_enabled %}
+<div class="auth-warning-banner" role="alert">
+    <div class="auth-warning-copy">
+        <span>{{ ui["console.auth_required"] }}</span>
+    </div>
+</div>
+{% endif %}
 <section class="stats-grid">
     <article class="kb-card metric-card">
         <div class="metric-copy">
@@ -45,7 +52,7 @@
     <pre class="terminal-output console-terminal" id="taskOutput">{{ ui["console.empty"] }}</pre>
     <form class="console-command-bar console-command-strip" id="consoleForm">
         <span class="console-chevron" aria-hidden="true"></span>
-        <input id="consoleInput" type="text" placeholder="{{ ui['console.command_placeholder'] }}">
+        <input id="consoleInput" type="text" placeholder="{{ ui['console.command_placeholder'] }}"{% if not auth_enabled %} disabled{% endif %}>
         <div class="console-tools" aria-hidden="true">
             <span class="console-tool console-tool-copy"></span>
             <span class="console-tool console-tool-expand"></span>
