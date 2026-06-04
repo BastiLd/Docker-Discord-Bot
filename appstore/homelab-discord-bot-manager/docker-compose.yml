@@ -2,7 +2,7 @@ name: homelab-discord-bot-manager
 
 services:
   homelab-discord-bot-manager:
-    image: ghcr.io/bastild/docker-discord-bot:0.6.0
+    image: ghcr.io/bastild/docker-discord-bot:0.7.0
     container_name: homelab-discord-bot-manager
     init: true
     restart: unless-stopped

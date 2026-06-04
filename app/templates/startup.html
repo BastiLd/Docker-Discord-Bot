@@ -223,10 +223,25 @@
                 <h2>{{ ui["startup.output"] }}</h2>
             </div>
         </div>
+        <div class="undo-banner hidden" id="taskUndoBanner" role="status">
+            <div class="undo-banner-copy">
+                <strong>{{ ui["activity.undo_tasks_body"] }}</strong>
+                <span class="undo-banner-timer" id="taskUndoTimer"></span>
+            </div>
+            <button class="btn btn-primary btn-sm" id="taskUndoBtn" type="button">{{ ui["activity.undo_clear"] }}</button>
+        </div>
         <pre class="terminal-output activity-terminal startup-task-terminal" id="taskOutput">{{ ui["console.empty"] }}</pre>
-        <div class="card-actions card-actions-end">
+        <div class="card-actions card-actions-end terminal-card-actions">
+            <button class="btn btn-secondary btn-sm hidden" type="button" id="restoreTaskBtn">{{ ui["activity.restore"] }}</button>
             <button class="btn btn-secondary btn-sm" type="button" id="clearStartupOutputBtn">{{ ui["common.clear"] }}</button>
         </div>
+        <details class="log-snapshots" id="taskSnapshots">
+            <summary>{{ ui["activity.snapshots"] }}</summary>
+            <p class="surface-note">{{ ui["activity.snapshots_tasks_hint"] }}</p>
+            <div class="log-snapshot-list" id="taskSnapshotList">
+                <p class="surface-note">{{ ui["activity.no_snapshots"] }}</p>
+            </div>
+        </details>
     </article>
 </section>
 {% endblock %}

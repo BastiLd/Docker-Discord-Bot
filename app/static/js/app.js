@@ -103,17 +103,17 @@ function bindAuthWarningDismiss() {
     const button = byId("dismissAuthWarningBtn");
     const banner = byId("authWarningBanner");
     if (!button || !banner) return;
+    // Once dismissed the banner stays gone for good (it used to reappear after 24h).
     button.addEventListener("click", () => {
         banner.classList.add("hidden");
         try {
-            window.localStorage?.setItem("katabot.authWarning.dismissed", String(Date.now()));
+            window.localStorage?.setItem("katabot.authWarning.dismissed", "1");
         } catch {
             // ignore storage failures
         }
     });
     try {
-        const stamp = Number(window.localStorage?.getItem("katabot.authWarning.dismissed") || 0);
-        if (stamp && Date.now() - stamp < 1000 * 60 * 60 * 24) {
+        if (window.localStorage?.getItem("katabot.authWarning.dismissed")) {
             banner.classList.add("hidden");
         }
     } catch {
@@ -988,17 +988,25 @@ function bindConsolePage() {
     });
     els.clearTaskOutputBtn?.addEventListener("click", clearTaskOutputView);
     updateConsoleFilterButtons();
+    bindTaskUndo();
     bindTaskPage({ withConsoleForm: true });
 }
 
-function clearTaskOutputView() {
+async function clearTaskOutputView() {
     state.activeTaskId = null;
     state.activeTaskOutput = "";
     renderTaskOutput();
-    api("/api/tasks/clear", { method: "POST" })
-        .then(() => refreshTasks({ silent: true }))
-        .catch((error) => showToast(error.message, "error"));
-    showToastKey("toast.tasks_cleared");
+    try {
+        const payload = await api("/api/tasks/clear", { method: "POST" });
+        await refreshTasks({ silent: true });
+        showToastKey("toast.tasks_cleared");
+        await refreshTaskSnapshots();
+        if (payload && payload.snapshot) {
+            showUndoBanner(els.taskUndoBanner, els.taskUndoTimer);
+        }
+    } catch (error) {
+        showToast(error.message, "error");
+    }
 }
 
 function bindStartupPage() {
@@ -1052,6 +1060,7 @@ function bindStartupPage() {
     els.refreshStartupBtn?.addEventListener("click", refreshStartupPage);
     els.installDepsBtn?.addEventListener("click", () => startTask("/api/tasks/install-deps", {}));
     els.clearStartupOutputBtn?.addEventListener("click", clearTaskOutputView);
+    bindTaskUndo();
     bindGitDeployButtons();
     els.installPackageBtn?.addEventListener("click", () => {
         const packageName = els.packageInput?.value.trim() || "";
@@ -3050,7 +3059,7 @@ async function clearActiveLogChannel() {
         showToastKey("toast.log_cleared");
         await refreshLogSnapshots(channel);
         if (payload && payload.snapshot) {
-            showUndoBanner(channel);
+            showUndoBanner(els.logUndoBanner, els.logUndoTimer);
         }
     } catch (error) {
         showToast(error.message, "error");
@@ -3059,27 +3068,28 @@ async function clearActiveLogChannel() {
 
 const UNDO_SECONDS = 30;
 
-function showUndoBanner(channel) {
-    if (!els.logUndoBanner || !els.logUndoTimer) return;
+// Generic 30s undo banner shared by every terminal. Hovering pauses the
+// countdown (handled where the hover listeners are bound), leaving resumes it.
+function showUndoBanner(bannerEl, timerEl) {
+    if (!bannerEl || !timerEl) return;
     stopUndoCountdown();
-    els.logUndoBanner.dataset.channel = channel;
-    els.logUndoBanner.classList.remove("hidden");
-
-    let remaining = UNDO_SECONDS;
-    const render = () => {
-        els.logUndoTimer.textContent = tr("activity.undo_countdown", { seconds: remaining });
+    bannerEl.classList.remove("hidden");
+    const renderTimer = (seconds) => {
+        timerEl.textContent = tr("activity.undo_countdown", { seconds });
     };
-    render();
+    renderTimer(UNDO_SECONDS);
     state.undoTimer = {
-        remaining,
+        remaining: UNDO_SECONDS,
         intervalId: null,
+        bannerEl,
+        timerEl,
         tick() {
             this.remaining -= 1;
             if (this.remaining <= 0) {
                 hideUndoBanner();
                 return;
             }
-            els.logUndoTimer.textContent = tr("activity.undo_countdown", { seconds: this.remaining });
+            renderTimer(this.remaining);
         },
         start() {
             this.intervalId = window.setInterval(() => this.tick(), 1000);
@@ -3108,8 +3118,9 @@ function stopUndoCountdown() {
 }
 
 function hideUndoBanner() {
+    const banner = state.undoTimer?.bannerEl;
     stopUndoCountdown();
-    els.logUndoBanner?.classList.add("hidden");
+    banner?.classList.add("hidden");
 }
 
 async function restoreLog(channel, snapshotId = null) {
@@ -3168,6 +3179,87 @@ function renderLogSnapshots(channel, items) {
 
     els.logSnapshotList.querySelectorAll("[data-snapshot-restore]").forEach((button) => {
         button.addEventListener("click", () => restoreLog(channel, button.dataset.snapshotRestore));
+    });
+}
+
+// --- Task output terminal (Console + Startup) undo/restore ---
+
+function bindTaskUndo() {
+    Object.assign(els, {
+        taskUndoBanner: byId("taskUndoBanner"),
+        taskUndoTimer: byId("taskUndoTimer"),
+        taskUndoBtn: byId("taskUndoBtn"),
+        restoreTaskBtn: byId("restoreTaskBtn"),
+        taskSnapshots: byId("taskSnapshots"),
+        taskSnapshotList: byId("taskSnapshotList"),
+    });
+    els.restoreTaskBtn?.addEventListener("click", () => restoreTasks());
+    els.taskUndoBtn?.addEventListener("click", () => restoreTasks());
+    if (els.taskUndoBanner) {
+        els.taskUndoBanner.addEventListener("mouseenter", pauseUndoCountdown);
+        els.taskUndoBanner.addEventListener("mouseleave", resumeUndoCountdown);
+    }
+    if (els.taskSnapshotList) refreshTaskSnapshots();
+}
+
+async function restoreTasks(snapshotId = null) {
+    try {
+        const payload = await api("/api/tasks/restore", {
+            method: "POST",
+            body: JSON.stringify({ snapshot_id: snapshotId }),
+        });
+        state.tasks = Array.isArray(payload.items) ? payload.items : [];
+        state.activeTaskId = state.tasks[0] ? state.tasks[0].task_id : null;
+        hideUndoBanner();
+        renderTasks();
+        await refreshActiveTask({ silent: true });
+        showToastKey("toast.tasks_restored");
+        await refreshTaskSnapshots();
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+async function refreshTaskSnapshots() {
+    if (!els.taskSnapshotList) return;
+    try {
+        const payload = await api("/api/tasks/snapshots");
+        renderTaskSnapshots(Array.isArray(payload.items) ? payload.items : []);
+    } catch (error) {
+        // Snapshots are a nice-to-have; never block the page on a fetch error.
+    }
+}
+
+function renderTaskSnapshots(items) {
+    if (els.restoreTaskBtn) {
+        els.restoreTaskBtn.classList.toggle("hidden", items.length === 0);
+    }
+    if (!els.taskSnapshotList) return;
+
+    if (!items.length) {
+        els.taskSnapshotList.innerHTML = `<p class="surface-note">${escapeHtml(tr("activity.no_snapshots"))}</p>`;
+        return;
+    }
+
+    els.taskSnapshotList.innerHTML = items
+        .map((item) => {
+            const when = item.cleared_at
+                ? new Date(item.cleared_at).toLocaleString(state.locale === "de" ? "de-AT" : "en-GB")
+                : "-";
+            const count = tr("activity.snapshot_tasks", { count: item.count ?? 0 });
+            return `
+                <div class="log-snapshot-row">
+                    <div class="log-snapshot-meta">
+                        <strong>${escapeHtml(when)}</strong>
+                        <span class="surface-note">${escapeHtml(count)}</span>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" type="button" data-task-snapshot-restore="${escapeHtml(item.id)}">${escapeHtml(tr("activity.restore"))}</button>
+                </div>`;
+        })
+        .join("");
+
+    els.taskSnapshotList.querySelectorAll("[data-task-snapshot-restore]").forEach((button) => {
+        button.addEventListener("click", () => restoreTasks(button.dataset.taskSnapshotRestore));
     });
 }
 

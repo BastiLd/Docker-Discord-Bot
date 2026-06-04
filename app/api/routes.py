@@ -28,12 +28,12 @@ from app.core.schemas import (
     GitDeployRollbackRequest,
     GitDeployUpdateRequest,
     InstallPackageRequest,
-    LogRestoreRequest,
     PanelMetaUpdateModel,
     RenameEntryRequest,
     SaveEnvRequest,
     SaveFileRequest,
     SaveScheduleRequest,
+    SnapshotRestoreRequest,
     TransferEntriesRequest,
     UiCredentialsRequest,
 )
@@ -1011,7 +1011,7 @@ async def list_log_snapshots(request: Request, channel: str) -> JSONResponse:
 
 
 @router.post("/api/logs/{channel}/restore")
-async def restore_log_channel(request: Request, channel: str, payload: LogRestoreRequest) -> JSONResponse:
+async def restore_log_channel(request: Request, channel: str, payload: SnapshotRestoreRequest) -> JSONResponse:
     if channel not in {"bot", "system"}:
         raise HTTPException(status_code=404, detail="Unknown log channel.")
     log_service = _services(request).log_service
@@ -1025,8 +1025,22 @@ async def restore_log_channel(request: Request, channel: str, payload: LogRestor
 
 @router.post("/api/tasks/clear")
 async def clear_finished_tasks(request: Request) -> JSONResponse:
-    removed = await _services(request).task_manager.clear_tasks()
-    return JSONResponse({"ok": True, "removed": removed})
+    snapshot = await _services(request).task_manager.clear_tasks()
+    return JSONResponse({"ok": True, "removed": snapshot["count"] if snapshot else 0, "snapshot": snapshot})
+
+
+@router.get("/api/tasks/snapshots")
+async def list_task_snapshots(request: Request) -> JSONResponse:
+    return JSONResponse({"items": _services(request).task_manager.list_task_snapshots()})
+
+
+@router.post("/api/tasks/restore")
+async def restore_tasks(request: Request, payload: SnapshotRestoreRequest) -> JSONResponse:
+    try:
+        items = await _services(request).task_manager.restore_tasks(payload.snapshot_id)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    return JSONResponse({"ok": True, "items": items})
 
 
 @router.get("/api/logs/{channel}/download")

@@ -9,12 +9,16 @@
                 <h1>{{ ui["activity.logs"] }}</h1>
                 <p class="surface-note">{{ ui["activity.logs_hint"] }}</p>
             </div>
-            <div class="toolbar-actions">
-                <button class="btn btn-secondary is-active" data-log-tab="bot" type="button">{{ ui["activity.bot_logs"] }}</button>
-                <button class="btn btn-secondary" data-log-tab="system" type="button">{{ ui["activity.system_logs"] }}</button>
-                <button class="btn btn-secondary" id="clearLogBtn" type="button">{{ ui["common.clear"] }}</button>
-                <button class="btn btn-secondary hidden" id="restoreLogBtn" type="button">{{ ui["activity.restore"] }}</button>
-                <a class="btn btn-secondary" id="downloadLogsLink" href="/api/logs/bot/download">{{ ui["activity.download"] }}</a>
+            <div class="toolbar-actions terminal-toolbar-actions">
+                <div class="btn-group log-tab-group">
+                    <button class="btn btn-secondary is-active" data-log-tab="bot" type="button">{{ ui["activity.bot_logs"] }}</button>
+                    <button class="btn btn-secondary" data-log-tab="system" type="button">{{ ui["activity.system_logs"] }}</button>
+                </div>
+                <div class="btn-group log-action-group">
+                    <button class="btn btn-secondary" id="clearLogBtn" type="button">{{ ui["common.clear"] }}</button>
+                    <button class="btn btn-secondary hidden" id="restoreLogBtn" type="button">{{ ui["activity.restore"] }}</button>
+                    <a class="btn btn-secondary" id="downloadLogsLink" href="/api/logs/bot/download">{{ ui["activity.download"] }}</a>
+                </div>
             </div>
         </div>
 

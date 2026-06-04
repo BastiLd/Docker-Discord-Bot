@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import secrets
 import shlex
 import sys
 import uuid
@@ -11,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 
 from app.core.config import BASE_DIR, AppConfig
-from app.core.utils import human_duration, isoformat, utc_now
+from app.core.utils import human_duration, isoformat, parse_isoformat, utc_now
 from app.services.log_service import LogService
 
 
@@ -76,19 +77,26 @@ class ManagedTask:
 
 
 class TaskManager:
+    SNAPSHOT_LIMIT = 10
+
     def __init__(self, config: AppConfig, log_service: LogService) -> None:
         self.config = config
         self.log_service = log_service
         self._tasks: dict[str, ManagedTask] = {}
         self._task_order: deque[str] = deque(maxlen=30)
         self._task_lock = asyncio.Lock()
+        self._snapshots: deque[dict] = deque(maxlen=self.SNAPSHOT_LIMIT)
 
     async def list_tasks(self) -> list[dict]:
         return [self._tasks[task_id].serialize() for task_id in reversed(self._task_order)]
 
-    async def clear_tasks(self) -> int:
+    async def clear_tasks(self) -> dict | None:
+        """Remove finished tasks, keeping a restorable snapshot of what was cleared.
+
+        Returns the created snapshot's metadata, or ``None`` when nothing was removed.
+        """
         async with self._task_lock:
-            removed = 0
+            removed: list[dict] = []
             for task_id in list(self._task_order):
                 task = self._tasks.get(task_id)
                 if task is None:
@@ -96,10 +104,71 @@ class TaskManager:
                     continue
                 if task.status in {"pending", "running"}:
                     continue
+                removed.append(task.serialize())
                 self._tasks.pop(task_id, None)
                 self._task_order.remove(task_id)
-                removed += 1
-            return removed
+
+            if not removed:
+                return None
+
+            snapshot = {
+                "id": f"{utc_now().strftime('%Y%m%d-%H%M%S-%f')}-{secrets.token_hex(3)}",
+                "cleared_at": utc_now().astimezone().isoformat(timespec="seconds"),
+                "count": len(removed),
+                "tasks": removed,
+            }
+            self._snapshots.append(snapshot)
+            return self._snapshot_meta(snapshot)
+
+    def list_task_snapshots(self) -> list[dict]:
+        return [self._snapshot_meta(snapshot) for snapshot in reversed(self._snapshots)]
+
+    async def restore_tasks(self, snapshot_id: str | None = None) -> list[dict]:
+        """Re-insert the tasks captured in a snapshot (newest by default)."""
+        async with self._task_lock:
+            snapshot = self._resolve_snapshot(snapshot_id)
+            if snapshot is None:
+                raise ValueError("Kein Snapshot zum Wiederherstellen vorhanden.")
+            for data in snapshot["tasks"]:
+                if data.get("task_id") in self._tasks:
+                    continue
+                task = self._task_from_serialized(data)
+                self._tasks[task.task_id] = task
+                self._task_order.append(task.task_id)
+            return [self._tasks[task_id].serialize() for task_id in reversed(self._task_order)]
+
+    @staticmethod
+    def _snapshot_meta(snapshot: dict) -> dict:
+        return {"id": snapshot["id"], "cleared_at": snapshot["cleared_at"], "count": snapshot["count"]}
+
+    def _resolve_snapshot(self, snapshot_id: str | None) -> dict | None:
+        if not self._snapshots:
+            return None
+        if snapshot_id is None:
+            return self._snapshots[-1]
+        for snapshot in self._snapshots:
+            if snapshot["id"] == snapshot_id:
+                return snapshot
+        return None
+
+    def _task_from_serialized(self, data: dict) -> ManagedTask:
+        task = ManagedTask(
+            task_id=data.get("task_id") or uuid.uuid4().hex[:10],
+            kind=data.get("kind", ""),
+            title=data.get("title", ""),
+            command=list(data.get("command") or []),
+            cwd=self.config.workspace_dir,
+            env={},
+        )
+        task.status = data.get("status", "success")
+        task.created_at = parse_isoformat(data.get("created_at")) or utc_now()
+        task.started_at = parse_isoformat(data.get("started_at"))
+        task.finished_at = parse_isoformat(data.get("finished_at"))
+        task.exit_code = data.get("exit_code")
+        output = data.get("output") or ""
+        if output:
+            task.output_lines.extend(output.split("\n"))
+        return task
 
     async def get_task(self, task_id: str) -> dict:
         task = self._tasks.get(task_id)

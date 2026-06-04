@@ -164,7 +164,7 @@ class InstallPackageRequest(BaseModel):
     package: str = Field(min_length=1, max_length=200)
 
 
-class LogRestoreRequest(BaseModel):
+class SnapshotRestoreRequest(BaseModel):
     snapshot_id: str | None = Field(default=None, max_length=64)
 
 
