@@ -101,7 +101,7 @@ def load_config() -> AppConfig:
         ui_password=os.getenv("UI_PASSWORD") or None,
         session_secret=_load_or_create_session_secret(config_dir),
         timezone=os.getenv("TZ", "UTC"),
-        app_version=os.getenv("APP_VERSION", "0.5.0"),
-        app_image_tag=os.getenv("APP_IMAGE_TAG", os.getenv("APP_VERSION", "0.5.0")),
+        app_version=os.getenv("APP_VERSION", "0.6.0"),
+        app_image_tag=os.getenv("APP_IMAGE_TAG", os.getenv("APP_VERSION", "0.6.0")),
         app_build_sha=os.getenv("APP_BUILD_SHA", "unknown"),
     )

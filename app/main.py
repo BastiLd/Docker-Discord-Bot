@@ -15,6 +15,7 @@ from app.api.routes import router
 from app.core.config import BASE_DIR, load_config
 from app.core.security import SESSION_USER_KEY, auth_enabled, is_public_path
 from app.services.server_registry_service import ServerRegistryService
+from app.services.ui_auth_service import UiAuthService
 
 config = load_config()
 
@@ -23,7 +24,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
     """Require a valid session for all routes once UI credentials are configured."""
 
     async def dispatch(self, request: Request, call_next):
-        if not auth_enabled(config):
+        ui_auth = getattr(request.app.state, "ui_auth_service", None)
+        if not auth_enabled(config, ui_auth):
             return await call_next(request)
 
         path = request.url.path
@@ -45,6 +47,7 @@ async def lifespan(app: FastAPI):
     app.state.config = config
     app.state.templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
     app.state.server_registry_service = server_registry_service
+    app.state.ui_auth_service = UiAuthService(config.config_dir / "ui_auth.json")
 
     await server_registry_service.start_all_schedules()
     await server_registry_service.get_runtime("default").log_service.write("system", f"{config.app_name} ready.")

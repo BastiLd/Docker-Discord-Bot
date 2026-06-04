@@ -3708,6 +3708,65 @@ body[data-page="console"] .mascot-help-button {
     color: var(--text-soft);
 }
 
+/* Undo banner + log snapshots */
+.undo-banner {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--divider);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin: 12px 0;
+}
+
+.undo-banner-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.undo-banner-timer {
+    font-size: 0.82rem;
+    color: var(--text-soft);
+}
+
+.log-snapshots {
+    margin-top: 16px;
+}
+
+.log-snapshots > summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.log-snapshot-list {
+    display: grid;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.log-snapshot-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 8px 12px;
+}
+
+.log-snapshot-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.log-snapshot-meta strong {
+    font-size: 0.9rem;
+}
+
 /* Extra patterns + history + preview */
 .extra-pattern-row {
     display: grid;

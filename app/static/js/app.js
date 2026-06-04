@@ -28,6 +28,7 @@ const state = {
     logTab: "bot",
     logBuffers: { bot: [], system: [] },
     sockets: {},
+    undoTimer: null,
     backups: [],
     schedules: [],
     metrics: {},
@@ -578,13 +579,98 @@ function bindSettingsPage() {
         gitCheckoutSelect: byId("gitCheckoutSelect"),
         gitCheckoutKeepInput: byId("gitCheckoutKeepInput"),
         gitCheckoutBtn: byId("gitCheckoutBtn"),
+        securityCard: byId("securityCard"),
+        securityStatusText: byId("securityStatusText"),
+        securityUsernameInput: byId("securityUsernameInput"),
+        securityPasswordInput: byId("securityPasswordInput"),
+        securityPasswordConfirmInput: byId("securityPasswordConfirmInput"),
+        saveSecurityBtn: byId("saveSecurityBtn"),
+        disableSecurityBtn: byId("disableSecurityBtn"),
     });
     els.savePanelBtn?.addEventListener("click", savePanelMeta);
     els.checkAppUpdateBtn?.addEventListener("click", () => refreshAppUpdate({ silent: false }));
+    els.saveSecurityBtn?.addEventListener("click", saveSecurityCredentials);
+    els.disableSecurityBtn?.addEventListener("click", disableSecurityCredentials);
     bindGitDeployButtons();
     applyGitDeployToForm();
     bindGitCheckoutCard();
     refreshAppUpdate({ silent: true });
+    refreshSecurityStatus();
+}
+
+async function refreshSecurityStatus() {
+    if (!els.securityCard) return;
+    try {
+        const status = await api("/api/security/credentials");
+        applySecurityStatus(status);
+    } catch (error) {
+        // Status is informational only.
+    }
+}
+
+function applySecurityStatus(status) {
+    if (!els.securityCard) return;
+    const envLocked = Boolean(status.env_locked);
+    let statusKey = "security.status_inactive";
+    if (status.source === "env") {
+        statusKey = "security.status_env";
+    } else if (status.source === "panel") {
+        statusKey = "security.status_active";
+    }
+    if (els.securityStatusText) {
+        els.securityStatusText.textContent = tr(statusKey);
+    }
+    if (els.securityUsernameInput && status.username && status.source !== "panel") {
+        els.securityUsernameInput.value = status.username;
+    } else if (els.securityUsernameInput && status.source === "panel" && !els.securityUsernameInput.value) {
+        els.securityUsernameInput.value = status.username || "";
+    }
+    // When credentials are forced via environment variables, panel fields stay read-only.
+    [els.securityUsernameInput, els.securityPasswordInput, els.securityPasswordConfirmInput, els.saveSecurityBtn].forEach((el) => {
+        if (el) el.disabled = envLocked;
+    });
+    if (els.disableSecurityBtn) {
+        els.disableSecurityBtn.disabled = envLocked || status.source !== "panel";
+    }
+}
+
+async function saveSecurityCredentials() {
+    const username = (els.securityUsernameInput?.value || "").trim();
+    const password = els.securityPasswordInput?.value || "";
+    const confirm = els.securityPasswordConfirmInput?.value || "";
+    if (!username || !password) {
+        showToastKey("security.error_required", {}, "error");
+        return;
+    }
+    if (password !== confirm) {
+        showToastKey("security.error_mismatch", {}, "error");
+        return;
+    }
+    try {
+        const status = await api("/api/security/credentials", {
+            method: "POST",
+            body: JSON.stringify({ username, password }),
+        });
+        if (els.securityPasswordInput) els.securityPasswordInput.value = "";
+        if (els.securityPasswordConfirmInput) els.securityPasswordConfirmInput.value = "";
+        applySecurityStatus(status);
+        showToastKey("toast.security_saved");
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+async function disableSecurityCredentials() {
+    if (!window.confirm(tr("security.disable_confirm"))) return;
+    try {
+        const status = await api("/api/security/credentials", { method: "DELETE" });
+        if (els.securityPasswordInput) els.securityPasswordInput.value = "";
+        if (els.securityPasswordConfirmInput) els.securityPasswordConfirmInput.value = "";
+        applySecurityStatus(status);
+        showToastKey("toast.security_disabled");
+    } catch (error) {
+        showToast(error.message, "error");
+    }
 }
 
 function bindGitCheckoutCard() {
@@ -2922,6 +3008,13 @@ function bindHistoryAndLogs() {
         downloadLogsLink: byId("downloadLogsLink"),
         logTabButtons: queryAll("[data-log-tab]"),
         clearLogBtn: byId("clearLogBtn"),
+        restoreLogBtn: byId("restoreLogBtn"),
+        logUndoBanner: byId("logUndoBanner"),
+        logUndoTimer: byId("logUndoTimer"),
+        logUndoBtn: byId("logUndoBtn"),
+        logSnapshots: byId("logSnapshots"),
+        logSnapshotList: byId("logSnapshotList"),
+        logSnapshotEmpty: byId("logSnapshotEmpty"),
     });
 
     els.logTabButtons.forEach((button) => {
@@ -2929,6 +3022,14 @@ function bindHistoryAndLogs() {
     });
 
     els.clearLogBtn?.addEventListener("click", clearActiveLogChannel);
+    els.restoreLogBtn?.addEventListener("click", () => restoreLog(state.logTab || "bot"));
+    els.logUndoBtn?.addEventListener("click", () => restoreLog(state.logTab || "bot"));
+
+    // Hovering the undo banner pauses its countdown; leaving resumes it.
+    if (els.logUndoBanner) {
+        els.logUndoBanner.addEventListener("mouseenter", pauseUndoCountdown);
+        els.logUndoBanner.addEventListener("mouseleave", resumeUndoCountdown);
+    }
 
     if (els.dashboardLogPreview || els.logOutput) {
         connectLogSocket("bot");
@@ -2937,18 +3038,137 @@ function bindHistoryAndLogs() {
         connectLogSocket("system");
     }
     renderLogSurfaces();
+    if (els.logOutput) refreshLogSnapshots(state.logTab || "bot");
 }
 
 async function clearActiveLogChannel() {
     const channel = state.logTab || "bot";
     try {
-        await api(`/api/logs/${channel}/clear`, { method: "POST" });
+        const payload = await api(`/api/logs/${channel}/clear`, { method: "POST" });
         state.logBuffers[channel] = [];
         renderLogSurfaces();
         showToastKey("toast.log_cleared");
+        await refreshLogSnapshots(channel);
+        if (payload && payload.snapshot) {
+            showUndoBanner(channel);
+        }
     } catch (error) {
         showToast(error.message, "error");
     }
+}
+
+const UNDO_SECONDS = 30;
+
+function showUndoBanner(channel) {
+    if (!els.logUndoBanner || !els.logUndoTimer) return;
+    stopUndoCountdown();
+    els.logUndoBanner.dataset.channel = channel;
+    els.logUndoBanner.classList.remove("hidden");
+
+    let remaining = UNDO_SECONDS;
+    const render = () => {
+        els.logUndoTimer.textContent = tr("activity.undo_countdown", { seconds: remaining });
+    };
+    render();
+    state.undoTimer = {
+        remaining,
+        intervalId: null,
+        tick() {
+            this.remaining -= 1;
+            if (this.remaining <= 0) {
+                hideUndoBanner();
+                return;
+            }
+            els.logUndoTimer.textContent = tr("activity.undo_countdown", { seconds: this.remaining });
+        },
+        start() {
+            this.intervalId = window.setInterval(() => this.tick(), 1000);
+        },
+        stop() {
+            if (this.intervalId) window.clearInterval(this.intervalId);
+            this.intervalId = null;
+        },
+    };
+    state.undoTimer.start();
+}
+
+function pauseUndoCountdown() {
+    state.undoTimer?.stop();
+}
+
+function resumeUndoCountdown() {
+    if (state.undoTimer && state.undoTimer.remaining > 0 && !state.undoTimer.intervalId) {
+        state.undoTimer.start();
+    }
+}
+
+function stopUndoCountdown() {
+    state.undoTimer?.stop();
+    state.undoTimer = null;
+}
+
+function hideUndoBanner() {
+    stopUndoCountdown();
+    els.logUndoBanner?.classList.add("hidden");
+}
+
+async function restoreLog(channel, snapshotId = null) {
+    try {
+        const payload = await api(`/api/logs/${channel}/restore`, {
+            method: "POST",
+            body: JSON.stringify({ snapshot_id: snapshotId }),
+        });
+        state.logBuffers[channel] = Array.isArray(payload.lines) ? payload.lines.slice(-400) : [];
+        hideUndoBanner();
+        renderLogSurfaces();
+        showToastKey("toast.log_restored");
+        await refreshLogSnapshots(channel);
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+async function refreshLogSnapshots(channel) {
+    if (!els.logSnapshotList) return;
+    try {
+        const payload = await api(`/api/logs/${channel}/snapshots`);
+        renderLogSnapshots(channel, Array.isArray(payload.items) ? payload.items : []);
+    } catch (error) {
+        // Snapshots are a nice-to-have; never block the page on a fetch error.
+    }
+}
+
+function renderLogSnapshots(channel, items) {
+    if (els.restoreLogBtn) {
+        els.restoreLogBtn.classList.toggle("hidden", items.length === 0);
+    }
+    if (!els.logSnapshotList) return;
+
+    if (!items.length) {
+        els.logSnapshotList.innerHTML = `<p class="surface-note" id="logSnapshotEmpty">${escapeHtml(tr("activity.no_snapshots"))}</p>`;
+        return;
+    }
+
+    els.logSnapshotList.innerHTML = items
+        .map((item) => {
+            const when = item.cleared_at
+                ? new Date(item.cleared_at).toLocaleString(state.locale === "de" ? "de-AT" : "en-GB")
+                : "-";
+            const lines = tr("activity.snapshot_lines", { count: item.line_count ?? 0 });
+            return `
+                <div class="log-snapshot-row">
+                    <div class="log-snapshot-meta">
+                        <strong>${escapeHtml(when)}</strong>
+                        <span class="surface-note">${escapeHtml(lines)}</span>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" type="button" data-snapshot-restore="${escapeHtml(item.id)}">${escapeHtml(tr("activity.restore"))}</button>
+                </div>`;
+        })
+        .join("");
+
+    els.logSnapshotList.querySelectorAll("[data-snapshot-restore]").forEach((button) => {
+        button.addEventListener("click", () => restoreLog(channel, button.dataset.snapshotRestore));
+    });
 }
 
 function bindTour() {
@@ -3153,7 +3373,9 @@ function hideSpotlight() {
 
 function switchLogTab(tab) {
     state.logTab = tab === "system" ? "system" : "bot";
+    hideUndoBanner();
     renderLogSurfaces();
+    refreshLogSnapshots(state.logTab);
 }
 
 function connectLogSocket(channel) {

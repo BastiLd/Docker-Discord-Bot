@@ -13,10 +13,28 @@
                 <button class="btn btn-secondary is-active" data-log-tab="bot" type="button">{{ ui["activity.bot_logs"] }}</button>
                 <button class="btn btn-secondary" data-log-tab="system" type="button">{{ ui["activity.system_logs"] }}</button>
                 <button class="btn btn-secondary" id="clearLogBtn" type="button">{{ ui["common.clear"] }}</button>
+                <button class="btn btn-secondary hidden" id="restoreLogBtn" type="button">{{ ui["activity.restore"] }}</button>
                 <a class="btn btn-secondary" id="downloadLogsLink" href="/api/logs/bot/download">{{ ui["activity.download"] }}</a>
             </div>
         </div>
+
+        <div class="undo-banner hidden" id="logUndoBanner" role="status">
+            <div class="undo-banner-copy">
+                <strong>{{ ui["activity.undo_body"] }}</strong>
+                <span class="undo-banner-timer" id="logUndoTimer"></span>
+            </div>
+            <button class="btn btn-primary btn-sm" id="logUndoBtn" type="button">{{ ui["activity.undo_clear"] }}</button>
+        </div>
+
         <pre class="terminal-output activity-terminal" id="logOutput">{{ ui["activity.waiting"] }}</pre>
+
+        <details class="log-snapshots" id="logSnapshots">
+            <summary>{{ ui["activity.snapshots"] }}</summary>
+            <p class="surface-note">{{ ui["activity.snapshots_hint"] }}</p>
+            <div class="log-snapshot-list" id="logSnapshotList">
+                <p class="surface-note" id="logSnapshotEmpty">{{ ui["activity.no_snapshots"] }}</p>
+            </div>
+        </details>
     </article>
 
     <article class="surface side-surface activity-history-card">

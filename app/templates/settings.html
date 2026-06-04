@@ -47,6 +47,35 @@
         </div>
     </article>
 
+    <article class="kb-card" id="securityCard">
+        <h2 class="card-title">{{ ui["security.heading"] }}</h2>
+        <p class="surface-note">{{ ui["security.help"] }}</p>
+        <dl class="info-table compact-table">
+            <div>
+                <dt>{{ ui["git.status"] }}</dt>
+                <dd><span id="securityStatusText">{{ ui["common.none"] }}</span></dd>
+            </div>
+        </dl>
+        <div class="field-grid field-grid-single">
+            <label class="field">
+                <span>{{ ui["security.username"] }}</span>
+                <input id="securityUsernameInput" type="text" autocomplete="username">
+            </label>
+            <label class="field">
+                <span>{{ ui["security.password"] }}</span>
+                <input id="securityPasswordInput" type="password" autocomplete="new-password">
+            </label>
+            <label class="field">
+                <span>{{ ui["security.password_confirm"] }}</span>
+                <input id="securityPasswordConfirmInput" type="password" autocomplete="new-password">
+            </label>
+        </div>
+        <div class="card-actions card-actions-end">
+            <button class="btn btn-outline-danger" id="disableSecurityBtn" type="button">{{ ui["security.disable"] }}</button>
+            <button class="btn btn-primary" id="saveSecurityBtn" type="button">{{ ui["security.save"] }}</button>
+        </div>
+    </article>
+
     <article class="kb-card">
         <h2 class="card-title">Debug Information</h2>
         <dl class="info-table compact-table">

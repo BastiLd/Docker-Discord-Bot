@@ -264,8 +264,9 @@ class ServerRegistryService:
         self.base_config.ensure_directories()
 
         config_dir = self.base_config.config_dir.resolve()
+        preserved = {"servers", "servers.json", "ui_auth.json", ".session_secret"}
         for item in config_dir.iterdir():
-            if item.name in {"servers", "servers.json"}:
+            if item.name in preserved:
                 continue
             if item.is_dir():
                 shutil.rmtree(item, ignore_errors=True)

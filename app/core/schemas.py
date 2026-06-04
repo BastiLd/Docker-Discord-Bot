@@ -164,6 +164,15 @@ class InstallPackageRequest(BaseModel):
     package: str = Field(min_length=1, max_length=200)
 
 
+class LogRestoreRequest(BaseModel):
+    snapshot_id: str | None = Field(default=None, max_length=64)
+
+
+class UiCredentialsRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=120)
+    password: str = Field(min_length=1, max_length=256)
+
+
 class ConsoleCommandRequest(BaseModel):
     command: str = Field(min_length=1, max_length=500)
 

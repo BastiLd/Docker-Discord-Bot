@@ -28,14 +28,23 @@ from app.core.schemas import (
     GitDeployRollbackRequest,
     GitDeployUpdateRequest,
     InstallPackageRequest,
+    LogRestoreRequest,
     PanelMetaUpdateModel,
     RenameEntryRequest,
     SaveEnvRequest,
     SaveFileRequest,
     SaveScheduleRequest,
     TransferEntriesRequest,
+    UiCredentialsRequest,
 )
-from app.core.security import SESSION_USER_KEY, auth_enabled, safe_next_path, verify_credentials
+from app.core.security import (
+    SESSION_USER_KEY,
+    auth_enabled,
+    auth_source,
+    env_auth_enabled,
+    safe_next_path,
+    verify_credentials,
+)
 from app.services.app_update_service import AppUpdateService
 
 router = APIRouter()
@@ -96,6 +105,10 @@ PAGE_TITLES = {
 
 def _app_state(request: Request):
     return request.app.state
+
+
+def _ui_auth(request: Request):
+    return getattr(_app_state(request), "ui_auth_service", None)
 
 
 def _registry(request: Request):
@@ -173,8 +186,8 @@ async def _page_context(request: Request, *, active_page: str) -> dict[str, Any]
             }
         )
     server_address = request.headers.get("host") or f"localhost:{app_state.config.port}"
-    auth_enabled = bool(app_state.config.ui_username and app_state.config.ui_password)
-    auth_warning = _should_show_auth_warning(request, auth_enabled)
+    auth_is_enabled = auth_enabled(app_state.config, _ui_auth(request))
+    auth_warning = _should_show_auth_warning(request, auth_is_enabled)
 
     return {
         "request": request,
@@ -193,7 +206,7 @@ async def _page_context(request: Request, *, active_page: str) -> dict[str, Any]
         "git_deploy": git_deploy,
         "backup_retention": backup_retention,
         "workspace_path": str(state.config.workspace_dir),
-        "auth_enabled": auth_enabled,
+        "auth_enabled": auth_is_enabled,
         "auth_warning": auth_warning,
         "server_address": server_address,
         "support_links": SUPPORT_LINKS,
@@ -247,7 +260,7 @@ def _render_login(
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, next: str = "/") -> Response:
     config = _app_state(request).config
-    if not auth_enabled(config) or request.session.get(SESSION_USER_KEY):
+    if not auth_enabled(config, _ui_auth(request)) or request.session.get(SESSION_USER_KEY):
         return RedirectResponse(url=safe_next_path(next), status_code=303)
     return _render_login(request, next_url=next)
 
@@ -260,9 +273,10 @@ async def login_submit(
     next: str = Form(default="/"),
 ) -> Response:
     config = _app_state(request).config
-    if not auth_enabled(config):
+    ui_auth = _ui_auth(request)
+    if not auth_enabled(config, ui_auth):
         return RedirectResponse(url="/", status_code=303)
-    if verify_credentials(config, username, password):
+    if verify_credentials(config, username, password, ui_auth):
         request.session[SESSION_USER_KEY] = username
         return RedirectResponse(url=safe_next_path(next), status_code=303)
     return _render_login(request, next_url=next, error=True, status_code=401)
@@ -272,6 +286,64 @@ async def login_submit(
 async def logout(request: Request) -> RedirectResponse:
     request.session.clear()
     return RedirectResponse(url="/login", status_code=303)
+
+
+def _credentials_status(request: Request) -> dict:
+    config = _app_state(request).config
+    ui_auth = _ui_auth(request)
+    source = auth_source(config, ui_auth)
+    if source == "env":
+        username = config.ui_username
+    elif source == "panel" and ui_auth:
+        username = ui_auth.username
+    else:
+        username = None
+    return {
+        "configured": source is not None,
+        "username": username,
+        "source": source,
+        "env_locked": env_auth_enabled(config),
+    }
+
+
+@router.get("/api/security/credentials")
+async def get_security_credentials(request: Request) -> JSONResponse:
+    return JSONResponse(_credentials_status(request))
+
+
+@router.post("/api/security/credentials")
+async def set_security_credentials(request: Request, payload: UiCredentialsRequest) -> JSONResponse:
+    config = _app_state(request).config
+    if env_auth_enabled(config):
+        raise HTTPException(
+            status_code=409,
+            detail="Login ist über die Umgebungsvariablen UI_USERNAME/UI_PASSWORD festgelegt.",
+        )
+    ui_auth = _ui_auth(request)
+    if ui_auth is None:
+        raise HTTPException(status_code=500, detail="Auth-Speicher nicht verfügbar.")
+    try:
+        ui_auth.set_credentials(payload.username, payload.password)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    await _services(request).log_service.write("system", "Panel-Login aktualisiert.")
+    return JSONResponse({"ok": True, **_credentials_status(request)})
+
+
+@router.delete("/api/security/credentials")
+async def delete_security_credentials(request: Request) -> JSONResponse:
+    config = _app_state(request).config
+    if env_auth_enabled(config):
+        raise HTTPException(
+            status_code=409,
+            detail="Login ist über die Umgebungsvariablen UI_USERNAME/UI_PASSWORD festgelegt.",
+        )
+    ui_auth = _ui_auth(request)
+    if ui_auth is not None:
+        ui_auth.clear_credentials()
+    request.session.clear()
+    await _services(request).log_service.write("system", "Panel-Login deaktiviert.")
+    return JSONResponse({"ok": True, **_credentials_status(request)})
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -924,9 +996,31 @@ async def delete_schedule(request: Request, schedule_id: str) -> JSONResponse:
 async def clear_log_channel(request: Request, channel: str) -> JSONResponse:
     if channel not in {"bot", "system"}:
         raise HTTPException(status_code=404, detail="Unknown log channel.")
-    await _services(request).log_service.clear(channel)
-    await _services(request).log_service.write("system", f"Log {channel} geleert.")
-    return JSONResponse({"ok": True, "channel": channel})
+    log_service = _services(request).log_service
+    snapshot = await log_service.clear(channel)
+    await log_service.write("system", f"Log {channel} geleert.")
+    return JSONResponse({"ok": True, "channel": channel, "snapshot": snapshot})
+
+
+@router.get("/api/logs/{channel}/snapshots")
+async def list_log_snapshots(request: Request, channel: str) -> JSONResponse:
+    if channel not in {"bot", "system"}:
+        raise HTTPException(status_code=404, detail="Unknown log channel.")
+    items = _services(request).log_service.list_snapshots(channel)
+    return JSONResponse({"items": items})
+
+
+@router.post("/api/logs/{channel}/restore")
+async def restore_log_channel(request: Request, channel: str, payload: LogRestoreRequest) -> JSONResponse:
+    if channel not in {"bot", "system"}:
+        raise HTTPException(status_code=404, detail="Unknown log channel.")
+    log_service = _services(request).log_service
+    try:
+        lines = await log_service.restore(channel, payload.snapshot_id)
+    except Exception as exc:  # noqa: BLE001
+        _raise_bad_request(exc)
+    await log_service.write("system", f"Log {channel} wiederhergestellt.")
+    return JSONResponse({"ok": True, "channel": channel, "lines": lines})
 
 
 @router.post("/api/tasks/clear")
@@ -977,10 +1071,10 @@ async def install_package(request: Request, payload: InstallPackageRequest) -> J
 
 @router.post("/api/tasks/console")
 async def run_console_command(request: Request, payload: ConsoleCommandRequest) -> JSONResponse:
-    if not auth_enabled(_app_state(request).config):
+    if not auth_enabled(_app_state(request).config, _ui_auth(request)):
         raise HTTPException(
             status_code=403,
-            detail="Konsole erfordert aktivierte UI-Authentifizierung (UI_USERNAME/UI_PASSWORD).",
+            detail="Konsole erfordert aktiviertes Panel-Login (Einstellungen → Sicherheit oder UI_USERNAME/UI_PASSWORD).",
         )
     try:
         task = await _services(request).task_manager.start_console_command(payload.command)
@@ -995,7 +1089,8 @@ async def websocket_logs(websocket: WebSocket, channel: str) -> None:
         await websocket.close(code=1008)
         return
 
-    if auth_enabled(websocket.app.state.config) and not websocket.session.get(SESSION_USER_KEY):
+    ws_ui_auth = getattr(websocket.app.state, "ui_auth_service", None)
+    if auth_enabled(websocket.app.state.config, ws_ui_auth) and not websocket.session.get(SESSION_USER_KEY):
         await websocket.close(code=1008)
         return
 
